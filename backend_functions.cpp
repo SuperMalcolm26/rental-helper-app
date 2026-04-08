@@ -6,7 +6,6 @@ using namespace std;
 // #define rent_inflation_rate 5.2; (I wanted to use define but it's not working)
 const double rent_inflation_rate = 5.0;
 
-
 // This function calculates the projected rent increase for the following rental period based on the current amounts
 double new_rent(double current_rent, double rent_inflation_rate){
     double rent_increase = rent_inflation_rate*0.01*current_rent  ;
@@ -38,6 +37,7 @@ bool rent_flag(double curent_rent, double inflation_rate, int time_period, doubl
     return 0;
 }
 
+//This is a function that returns the number of years the user can rent a specified property based on their budget
 int valid_years(double current_rent, double inflation_rate, double charges_per_year, double budget){
     int valid_years(0);
     double total;
@@ -52,7 +52,7 @@ int valid_years(double current_rent, double inflation_rate, double charges_per_y
     return valid_years - 1;
 }
 
-
+//This is a function that aids in sanitizing the inputs, 
 void get_valid_number_inputs(double lower_bound, double upper_bound, double& destination){
     do{
         cout << "Input value: "<< endl;
@@ -61,7 +61,7 @@ void get_valid_number_inputs(double lower_bound, double upper_bound, double& des
 }
 
 
-
+//This is the main function. We were using this to test the functions
 int main(){
     // double init_rent = 1;
 
