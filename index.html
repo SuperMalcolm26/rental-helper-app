@@ -12,7 +12,7 @@
     <header class="hero">
         <p class="hero-badge">Smart Renting Toolkit</p>
         <h1>Rental Contract Helper</h1>
-        <p class="hero-subtitle">Understand legal terms, check building feedback, and estimate rent growth in one place.</p>
+        <p class="hero-subtitle">Before you sign your lease, make sure you understand it. Understand legal terms, check building feedback, and estimate rent growth in one place.</p>
     </header>
 
     <main class="dashboard-grid">
@@ -21,15 +21,17 @@
     <section class="card card-legal">
         <h2>Legal Term Translator</h2>
         <input type="text" placeholder="Enter legal term..." id="legalInput">
-        <button class="btn btn-legal">Search</button>
+        <button class="btn btn-legal">Explain Term</button>
         <p class="result">Explanation will appear here</p>
     </section>
 
     <!-- Building Search -->
     <section class="card card-building">
         <h2>Building Search & Reviews</h2>
+        <p class="helper-text">Check what tenants say before you rent</p>
+
         <input type="text" placeholder="Enter building name...">
-        <button class="btn btn-building">Search</button>
+        <button class="btn btn-building">Find Building</button>
 
         <div class="reviews">
             <p>Reviews will appear here</p>
@@ -45,7 +47,7 @@
         <input type="number" placeholder="Initial Rent">
         <input type="number" placeholder="Increase Rate (%)">
         <input type="number" placeholder="Months">
-        <button class="btn btn-rent">Calculate</button>
+        <button class="btn btn-rent">Estimate Total Rent</button>
 
         <p class="result">Projected cost will appear here</p>
     </section>
