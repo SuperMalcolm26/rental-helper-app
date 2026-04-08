@@ -53,20 +53,34 @@ int valid_years(double current_rent, double inflation_rate, double charges_per_y
 }
 
 
+void get_valid_number_inputs(double lower_bound, double upper_bound, double& destination){
+    do{
+        cout << "Input value: "<< endl;
+        cin >> destination;
+    } while(!((destination >=lower_bound) && (destination <= upper_bound)));
+}
+
+
 
 int main(){
-    double init_rent = 1;
+    // double init_rent = 1;
 
-    cout << "New rent is: "<< new_rent(init_rent, rent_inflation_rate) << endl;
+    // cout << "New rent is: "<< new_rent(init_rent, rent_inflation_rate) << endl;
 
-    cout << "The total rent over the next 1 years with 1 charge cycles is " << total_rent(init_rent, 1, 1, rent_inflation_rate)<< endl;
-    cout << "The total rent over the next 1 years with 2 charge cycles is " << total_rent(init_rent, 1, 2, rent_inflation_rate)<< endl;
-    cout << "The total rent over the next 2 years with 1 charge cycles is " << total_rent(init_rent, 2, 1, rent_inflation_rate)<< endl;
-    cout << "The total rent over the next 2 years with 2 charge cycles is " << total_rent(init_rent, 2, 2, rent_inflation_rate)<< endl;
+    // cout << "The total rent over the next 1 years with 1 charge cycles is " << total_rent(init_rent, 1, 1, rent_inflation_rate)<< endl;
+    // cout << "The total rent over the next 1 years with 2 charge cycles is " << total_rent(init_rent, 1, 2, rent_inflation_rate)<< endl;
+    // cout << "The total rent over the next 2 years with 1 charge cycles is " << total_rent(init_rent, 2, 1, rent_inflation_rate)<< endl;
+    // cout << "The total rent over the next 2 years with 2 charge cycles is " << total_rent(init_rent, 2, 2, rent_inflation_rate)<< endl;
 
-    int year = valid_years(init_rent, rent_inflation_rate, 1, 5);
+    // int year = valid_years(init_rent, rent_inflation_rate, 1, 5);
 
-    cout << "Valid years: " << year;
+    // cout << "Valid years: " << year;
+
+    double rent(0);
+
+    get_valid_number_inputs(0, 10, rent);
+
+    cout << rent;
     
     return 0;
 }
