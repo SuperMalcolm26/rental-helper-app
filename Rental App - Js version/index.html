@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Contract Helper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Lora:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     LOGIN OVERLAY
+══════════════════════════════════════════ -->
+<div id="loginOverlay" class="login-overlay hidden">
+    <div class="login-card">
+        <svg width="40" height="40" viewBox="-40 -40 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="0" cy="-10" r="16" fill="#0f766e" opacity="0.15" stroke="#0f766e" stroke-width="2"/>
+            <path d="M-28,32 Q-28,10 0,10 Q28,10 28,32" fill="#0f766e" opacity="0.15" stroke="#0f766e" stroke-width="2"/>
+        </svg>
+        <h2 class="login-title">Welcome back</h2>
+        <p class="login-sub">Enter your username to load your deadlines and reviews.</p>
+        <input type="text" id="usernameInput" placeholder="Your username"
+               onkeydown="if(event.key==='Enter') loginUser()" autocomplete="username">
+        <button class="btn btn-legal" onclick="loginUser()" style="width:100%;margin-top:0.5rem">Continue</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: DASHBOARD
+══════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+
+   <header class="hero">
+    <div class="hero-inner">
+        <span class="hero-badge">Smart Renting Toolkit</span>
+        <div class="hero-title-row">
+            <svg width="64" height="64" viewBox="-120 -120 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="0" cy="0" r="110" fill="white" opacity="0.08"/>
+                <circle cx="0" cy="0" r="96" fill="white" opacity="0.10"/>
+                <path d="M0,-78 L58,-50 L58,10 Q58,56 0,80 Q-58,56 -58,10 L-58,-50 Z" fill="white" opacity="0.12"/>
+                <path d="M0,-78 L58,-50 L58,10 Q58,56 0,80 Q-58,56 -58,10 L-58,-50 Z" fill="none" stroke="white" stroke-width="2.5" stroke-linejoin="round" opacity="0.6"/>
+                <polygon points="0,-52 38,-18 -38,-18" fill="white" opacity="0.9"/>
+                <rect x="14" y="-56" width="10" height="18" rx="2" fill="white" opacity="0.9"/>
+                <rect x="-28" y="-18" width="56" height="38" rx="3" fill="white" opacity="0.9"/>
+                <rect x="-9" y="2" width="18" height="18" rx="3" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+                <g transform="translate(18,-2)">
+                    <rect x="0" y="0" width="28" height="34" rx="3" fill="white" opacity="0.95"/>
+                    <rect x="0" y="0" width="28" height="34" rx="3" fill="none" stroke="rgba(20,184,166,0.8)" stroke-width="1.5"/>
+                    <line x1="4" y1="15" x2="24" y2="15" stroke="#14b8a6" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="4" y1="21" x2="20" y2="21" stroke="#14b8a6" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="4" y1="27" x2="22" y2="27" stroke="#14b8a6" stroke-width="1.5" stroke-linecap="round"/>
+                </g>
+                <path d="M-14,52 L-4,64 L18,40" fill="none" stroke="#14b8a6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h1>Rental Contract Helper</h1>
+        </div>
+        <p class="hero-subtitle">Understand legal terms, check building feedback, evaluate your budget, and track important dates — all in one place.</p>
+        <div class="hero-user">
+            Signed in as <strong id="currentUserLabel">—</strong>
+            &nbsp;·&nbsp;
+            <button class="hero-switch-btn" onclick="switchUser()">Switch user</button>
+        </div>
+    </div>
+</header>
+
+    <main class="container">
+        <div class="dashboard-grid">
+
+            <!-- ── 1. Legal Translator ── -->
+            <section class="card card-legal">
+                <div class="card-header">
+                    <span class="card-icon"><svg width="28" height="28" viewBox="-40 -40 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="-34" y="-28" width="32" height="40" rx="4" fill="#2563eb" opacity="0.15" stroke="#2563eb" stroke-width="1.5"/><rect x="2" y="-28" width="32" height="40" rx="4" fill="#2563eb" opacity="0.15" stroke="#2563eb" stroke-width="1.5"/><line x1="0" y1="-28" x2="0" y2="12" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/><line x1="-28" y1="-16" x2="-8" y2="-16" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/><line x1="-28" y1="-8" x2="-8" y2="-8" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/><line x1="-28" y1="0" x2="-8" y2="0" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="-16" x2="28" y2="-16" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="-8" x2="28" y2="-8" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="0" x2="28" y2="0" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/><circle cx="22" cy="16" r="11" fill="white" stroke="#0f766e" stroke-width="2"/><circle cx="22" cy="16" r="6" fill="#0f766e" opacity="0.18"/><line x1="30" y1="24" x2="38" y2="32" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+                    <div>
+                        <h2>Legal Term Translator</h2>
+                        <p class="card-desc">Paste any confusing clause or tap a common term below</p>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="legalInput" placeholder="e.g. indemnification, force majeure…"
+                           onkeydown="if(event.key==='Enter') explainTerm()">
+                    <button class="btn btn-legal" onclick="explainTerm()">Explain</button>
+                </div>
+                <div class="quick-terms">
+                    <span class="tag" onclick="quickTerm('indemnification')">Indemnification</span>
+                    <span class="tag" onclick="quickTerm('subrogation')">Subrogation</span>
+                    <span class="tag" onclick="quickTerm('force majeure')">Force Majeure</span>
+                    <span class="tag" onclick="quickTerm('lien')">Lien</span>
+                    <span class="tag" onclick="quickTerm('latent defect')">Latent Defect</span>
+                    <span class="tag" onclick="quickTerm('habitability')">Habitability</span>
+                    <span class="tag" onclick="quickTerm('subletting')">Subletting</span>
+                    <span class="tag" onclick="quickTerm('default')">Default</span>
+                </div>
+                <div class="result-box hidden" id="legalResult">
+                    <span class="result-label">📖 Explanation</span>
+                    <p id="legalText"></p>
+                </div>
+
+                <!-- Tenant Rights panel -->
+                <div class="rights-banner">
+                    <div class="rights-banner-top" onclick="toggleRights()">
+                       <span class="rights-icon"><svg width="28" height="28" viewBox="-40 -48 80 96" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,-36 L30,-20 L30,8 Q30,32 0,44 Q-30,32 -30,8 L-30,-20 Z" fill="#0f766e" opacity="0.13" stroke="#0f766e" stroke-width="2" stroke-linejoin="round"/><path d="M0,-28 L22,-15 L22,8 Q22,26 0,36 Q-22,26 -22,8 L-22,-15 Z" fill="#0f766e" opacity="0.10"/><path d="M-12,6 L-2,18 L16,-6" fill="none" stroke="#0f766e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <div>
+                            <p class="rights-title">Your Guaranteed Tenant Rights</p>
+                            <p class="rights-sub">Rights your landlord must respect — whether or not they tell you</p>
+                        </div>
+                        <span class="rights-chevron" id="rightsChevron">▼</span>
+                    </div>
+                    <div class="rights-list hidden" id="rightsList">
+                        <div class="right-item">
+                            <span class="right-num">01</span>
+                            <div>
+                                <p class="right-name">Right to Habitable Conditions</p>
+                                <p class="right-desc">Your landlord must maintain safe and livable conditions — working heat, plumbing, and no pest infestations. This cannot be waived even if the contract says otherwise.</p>
+                            </div>
+                        </div>
+                        <div class="right-item">
+                            <span class="right-num">02</span>
+                            <div>
+                                <p class="right-name">Right to Privacy</p>
+                                <p class="right-desc">Landlords must give reasonable advance notice (typically 24–48 hours) before entering your unit, except in genuine emergencies.</p>
+                            </div>
+                        </div>
+                        <div class="right-item">
+                            <span class="right-num">03</span>
+                            <div>
+                                <p class="right-name">Right Against Illegal Clauses</p>
+                                <p class="right-desc">Any clause that waives your legal rights — such as "landlord is never responsible for repairs" — is unenforceable by law, even if you signed it.</p>
+                            </div>
+                        </div>
+                        <div class="right-item">
+                            <span class="right-num">04</span>
+                            <div>
+                                <p class="right-name">Right to Security Deposit Return</p>
+                                <p class="right-desc">Your deposit must be returned within the legally required period after moving out, with an itemized list of any deductions. Landlords cannot keep it without justification.</p>
+                            </div>
+                        </div>
+                        <div class="right-item">
+                            <span class="right-num">05</span>
+                            <div>
+                                <p class="right-name">Right Against Retaliation</p>
+                                <p class="right-desc">A landlord cannot evict you, raise your rent, or reduce services because you reported a problem or exercised a legal right. This protection is guaranteed by law.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── 2. Rent Calculator + Budget Evaluator ── -->
+            <section class="card card-rent">
+                <div class="card-header">
+                   <span class="card-icon"><svg width="28" height="28" viewBox="-40 -44 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="-32" y="4" width="14" height="18" rx="2" fill="#2563eb" opacity="0.35"/><rect x="-14" y="-8" width="14" height="30" rx="2" fill="#2563eb" opacity="0.55"/><rect x="4" y="-22" width="14" height="44" rx="2" fill="#2563eb" opacity="0.80"/><rect x="22" y="-34" width="14" height="56" rx="2" fill="#2563eb"/><line x1="-36" y1="22" x2="40" y2="22" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/><line x1="-28" y1="12" x2="28" y2="-30" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 3"/><path d="M20,-32 L30,-28 L26,-18" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <div>
+                        <h2>Rent Growth Calculator</h2>
+                        <p class="card-desc">Project your costs and check if the rent fits your budget</p>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label>Initial Monthly Rent ($)</label>
+                    <input type="number" id="initialRent" placeholder="e.g. 1200" min="0">
+                </div>
+                <div class="field-group">
+                    <label>Annual Increase Rate (%)</label>
+                    <input type="number" id="increaseRate" placeholder="e.g. 5" min="0" max="100" step="0.1">
+                </div>
+                <div class="field-group">
+                    <label>Duration (months)</label>
+                    <input type="number" id="months" placeholder="e.g. 24" min="1">
+                </div>
+                <!-- Budget evaluator input -->
+                <div class="field-group">
+                    <label>Your Total Budget ($) <span class="label-optional">optional — for budget check</span></label>
+                    <input type="number" id="userBudget" placeholder="e.g. 30000" min="0">
+                </div>
+                <button class="btn btn-rent" onclick="calculateRent()">Calculate Projection</button>
+                <div class="result-box hidden" id="rentResult">
+                    <span class="result-label">📊 Projection</span>
+                    <div class="budget-alert hidden" id="budgetAlert"></div>
+                    <div class="rent-stats" id="rentStats"></div>
+                    <div class="feasible-row hidden" id="feasibleRow"></div>
+                    <div class="rent-breakdown" id="rentBreakdown"></div>
+                </div>
+            </section>
+
+            <!-- ── 3. Building Search ── -->
+            <section class="card card-building full-width">
+                <div class="card-header">
+                   <span class="card-icon"><svg width="28" height="28" viewBox="-40 -48 90 90" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="-28" y="-20" width="44" height="42" rx="3" fill="#2563eb" opacity="0.15" stroke="#2563eb" stroke-width="1.8"/><polygon points="-6,-38 -34,-20 22,-20" fill="#2563eb" opacity="0.55"/><rect x="-20" y="-10" width="10" height="10" rx="2" fill="#2563eb"/><rect x="-4" y="-10" width="10" height="10" rx="2" fill="#2563eb"/><rect x="-20" y="4" width="10" height="10" rx="2" fill="#2563eb"/><rect x="-4" y="6" width="10" height="16" rx="2" fill="#2563eb"/><circle cx="22" cy="18" r="13" fill="white" stroke="#0f766e" stroke-width="2"/><circle cx="22" cy="18" r="7" fill="#0f766e" opacity="0.18"/><line x1="32" y1="28" x2="40" y2="36" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+                    <div>
+                        <h2>Building Search &amp; Reviews</h2>
+                        <p class="card-desc">Search a building and click any result to see full details, cost, and tenant reviews</p>
+                    </div>
+                </div>
+                <div class="search-row">
+                    <input type="text" id="buildingInput"
+                           placeholder="Search by name, address, or type (e.g. studio, condo)…"
+                           onkeydown="if(event.key==='Enter') searchBuilding()">
+                    <button class="btn btn-building" onclick="searchBuilding()">Search</button>
+                </div>
+                <div class="buildings-grid" id="buildingsGrid">
+                    <p class="placeholder-text">🔍 Search a building above to see results</p>
+                </div>
+            </section>
+
+            <!-- ── 4. Deadline & Renewal Tracker ── -->
+            <section class="card card-tracker full-width">
+                <div class="card-header">
+                    <span class="card-icon"><svg width="28" height="28" viewBox="-40 -34 90 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="-30" y="-20" width="48" height="42" rx="4" fill="#2563eb" opacity="0.13" stroke="#2563eb" stroke-width="1.8"/><rect x="-30" y="-20" width="48" height="13" rx="4" fill="#2563eb" opacity="0.55"/><rect x="-30" y="-14" width="48" height="7" fill="#2563eb" opacity="0.55"/><line x1="-12" y1="-24" x2="-12" y2="-12" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="-24" x2="6" y2="-12" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="-18" cy="0" r="2.5" fill="#2563eb" opacity="0.5"/><circle cx="-6" cy="0" r="2.5" fill="#2563eb" opacity="0.5"/><circle cx="6" cy="0" r="2.5" fill="#2563eb" opacity="0.5"/><circle cx="-18" cy="12" r="2.5" fill="#2563eb" opacity="0.5"/><circle cx="-6" cy="12" r="2.5" fill="#2563eb" opacity="0.5"/><circle cx="24" cy="20" r="14" fill="white" stroke="#0f766e" stroke-width="2"/><circle cx="24" cy="20" r="2" fill="#0f766e"/><line x1="24" y1="20" x2="24" y2="10" stroke="#0f766e" stroke-width="2" stroke-linecap="round"/><line x1="24" y1="20" x2="31" y2="24" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                    <div>
+                        <h2>Deadline &amp; Renewal Tracker</h2>
+                        <p class="card-desc">Track lease renewals, payment dates, and any deadline that matters to your tenancy</p>
+                    </div>
+                </div>
+                <div class="tracker-layout">
+                    <div class="tracker-form">
+                        <div class="field-group">
+                            <label>Deadline Label</label>
+                            <input type="text" id="deadlineLabel" placeholder="e.g. Lease renewal, Rent due, Inspection…"
+                                   onkeydown="if(event.key==='Enter') addDeadline()">
+                        </div>
+                        <div class="tracker-row">
+                            <div class="field-group" style="flex:1">
+                                <label>Date</label>
+                                <input type="date" id="deadlineDate">
+                            </div>
+                            <div class="field-group" style="flex:1">
+                                <label>Type</label>
+                                <select id="deadlineType">
+                                    <option value="renewal">🔄 Renewal</option>
+                                    <option value="payment">💳 Payment</option>
+                                    <option value="inspection">🔍 Inspection</option>
+                                    <option value="notice">📨 Notice Deadline</option>
+                                    <option value="other">📌 Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-tracker" onclick="addDeadline()">+ Add Deadline</button>
+                    </div>
+                    <div class="tracker-list-wrap">
+                        <div class="tracker-list" id="trackerList">
+                            <p class="tracker-empty">No deadlines yet — add one to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>Rental Contract Helper &nbsp;·&nbsp; localStorage edition</p>
+    </footer>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     PAGE: BUILDING DETAIL
+══════════════════════════════════════════ -->
+<div id="page-building" class="page">
+
+    <div class="detail-nav">
+        <button class="back-btn" onclick="goBack()">
+            <span class="back-arrow">←</span> Back to Search
+        </button>
+        <span class="detail-nav-brand">Rental Contract Helper</span>
+    </div>
+
+    <div class="container">
+
+        <div class="b-hero" id="bHero">
+            <div class="b-hero-img" id="bHeroImg">🏢</div>
+            <div class="b-hero-info">
+                <div class="b-badges" id="bBadges"></div>
+                <h1 class="b-name" id="bName">—</h1>
+                <p class="b-address" id="bAddress">—</p>
+                <div class="b-rating-row" id="bRatingRow"></div>
+                <p class="b-desc" id="bDesc">—</p>
+            </div>
+        </div>
+
+        <div class="b-stats-strip" id="bStatsStrip"></div>
+
+        <div class="b-body">
+            <div class="b-main">
+                <div class="b-section">
+                    <h3 class="section-heading">Amenities</h3>
+                    <div class="amenities-list" id="bAmenities"></div>
+                </div>
+                <div class="b-section">
+                    <h3 class="section-heading">
+                        Tenant Reviews
+                        <span class="review-pill" id="bReviewPill">0</span>
+                    </h3>
+                    <div id="bReviewsList"></div>
+                </div>
+            </div>
+
+            <aside class="b-sidebar">
+                <div class="sidebar-card">
+                    <h3 class="sidebar-title">Leave an Anonymous Review</h3>
+                    <p class="sidebar-note">Your review is 100% anonymous and helps future tenants make safer decisions.</p>
+                    <div class="field-group">
+                        <label>Your Rating</label>
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-val="1">★</span>
+                            <span class="star" data-val="2">★</span>
+                            <span class="star" data-val="3">★</span>
+                            <span class="star" data-val="4">★</span>
+                            <span class="star" data-val="5">★</span>
+                        </div>
+                        <input type="hidden" id="ratingValue" value="0">
+                    </div>
+                    <div class="field-group">
+                        <label>Your Experience</label>
+                        <textarea id="reviewText" placeholder="Tell future tenants about maintenance, landlord responsiveness, noise, safety…"></textarea>
+                    </div>
+                    <button class="btn btn-building btn-full" onclick="submitReview()">Submit Review</button>
+                    <p class="submit-note" id="submitNote"></p>
+                </div>
+
+                <div class="sidebar-card sidebar-calc">
+                    <h3 class="sidebar-title">Quick Cost Estimate</h3>
+                    <p class="sidebar-note">Uses this building's rent. Add a rate and duration to project your total cost.</p>
+                    <div class="field-group">
+                        <label>Annual Increase Rate (%)</label>
+                        <input type="number" id="quickRate" placeholder="e.g. 5" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="field-group">
+                        <label>Duration (months)</label>
+                        <input type="number" id="quickMonths" placeholder="e.g. 12" min="1">
+                    </div>
+                    <div class="field-group">
+                        <label>Your Budget ($) <span class="label-optional">optional</span></label>
+                        <input type="number" id="quickBudget" placeholder="e.g. 15000" min="0">
+                    </div>
+                    <button class="btn btn-rent btn-full" onclick="quickCalc()">Estimate</button>
+                    <div class="result-box hidden" id="quickResult">
+                        <span class="result-label">💰 Estimate</span>
+                        <div class="budget-alert hidden" id="quickBudgetAlert"></div>
+                        <div id="quickResultText"></div>
+                        <div class="feasible-row hidden" id="quickFeasibleRow"></div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <p>Rental Contract Helper &nbsp;·&nbsp; localStorage edition</p>
+    </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

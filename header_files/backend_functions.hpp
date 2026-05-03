@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 
+
 using namespace std;
 
 // #define rent_inflation_rate 5.2; (I wanted to use define but it's not working)
