@@ -1,39 +1,16 @@
 // ══════════════════════════════════════════════
 //  script.js — Rental Contract Helper
+//  Storage: localStorage (no backend required)
 //
-//  Buildings + legal terms: seeded from JSON
-//  files into localStorage on first load.
+//  Data is persisted per-user in the browser.
+//  On first load, buildings and legal terms are
+//  seeded from the JSON files in /data/.
 //
-//  Deadlines: read from / written to Firebase
-//  Firestore in real time. No backend server
-//  required — Firebase is called directly from
-//  the browser via the JS SDK (ES module).
-//
-//  Reviews: stored in localStorage per user.
+//  User "accounts" are a stored username string
+//  that scopes deadlines and reviews per person.
 // ══════════════════════════════════════════════
 
-// ── Firebase setup ─────────────────────────────────────────────────────────────────
-// Firebase is loaded as ES modules via their CDN (no npm needed).
-// initializeApp() registers your project config with the SDK.
-// getFirestore() returns the database instance used everywhere below.
 
-import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc,
-         addDoc, getDocs, deleteDoc,
-         query, where, orderBy,
-         serverTimestamp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey:            "AIzaSyAvJpHLk0ZQDSBxfhhTcmxyrvhDlhh34F0",
-    authDomain:        "rental-helper-app.firebaseapp.com",
-    projectId:         "rental-helper-app",
-    storageBucket:     "rental-helper-app.firebasestorage.app",
-    messagingSenderId: "996254224575",
-    appId:             "1:996254224575:web:686546743495de3a70b60a"
-};
-
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
 // ── Storage key helpers ───────────────────────────────────────────────────
 // All keys are namespaced so multiple "users" can share one browser.
 
@@ -42,6 +19,8 @@ const KEYS = {
     buildings: ()         => "rch:buildings",
     legalTerms:()         => "rch:legalTerms",
     reviews:   (user)     => `rch:reviews:${user}`,
+    deadlines: (user)     => `rch:deadlines:${user}`,
+    dlCounter: (user)     => `rch:dlCounter:${user}`,
     seeded:    ()         => "rch:seeded",
 };
 
@@ -160,69 +139,23 @@ function allReviewsFor(buildingId, seedReviews) {
 }
 
 
-// ── Deadlines (Firebase Firestore) ───────────────────────────────────────────────
-// Firestore structure:
-//   /deadlines/{auto-id}
-//       username  : string    -- scopes documents per user
-//       label     : string
-//       date      : string    -- "YYYY-MM-DD"
-//       type      : string
-//       createdAt : timestamp -- set server-side for stable ordering
-//
-// All functions are async because Firestore calls are network
-// operations that return Promises we need to await.
+// ── Deadlines (scoped per user) ───────────────────────────────────────────
 
-// Fetch all deadlines for the current user, sorted by date ascending.
-async function loadDeadlines() {
+function getDeadlines() {
     const user = getCurrentUser();
-    if (!user) return [];
-    try {
-        const q    = query(
-            collection(db, "deadlines"),
-            where("username", "==", user),
-            orderBy("date", "asc")
-        );
-        const snap = await getDocs(q);
-        // Each doc has an auto-generated .id and a .data() method.
-        // We spread both into one plain object for the rest of the code.
-        return snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
-    } catch (e) {
-        console.error("Firestore loadDeadlines failed:", e);
-        return [];
-    }
+    return load(KEYS.deadlines(user), []);
 }
 
-// Write a new deadline document and re-render the list.
-async function addDeadlineToFirestore(label, date, type) {
+function saveDeadlines(list) {
     const user = getCurrentUser();
-    if (!user) return;
-    try {
-        // addDoc() creates a document with an auto-generated ID.
-        // serverTimestamp() lets Firestore fill in the time —
-        // more reliable than using the browser clock.
-        await addDoc(collection(db, "deadlines"), {
-            username:  user,
-            label,
-            date,
-            type,
-            createdAt: serverTimestamp()
-        });
-        await renderDeadlines();
-    } catch (e) {
-        console.error("Firestore addDeadline failed:", e);
-        alert("Could not save deadline — check your internet connection.");
-    }
+    store(KEYS.deadlines(user), list);
 }
 
-// Delete a document by its Firestore auto-generated ID.
-async function removeDeadlineFromFirestore(firestoreId) {
-    try {
-        await deleteDoc(doc(db, "deadlines", firestoreId));
-        await renderDeadlines();
-    } catch (e) {
-        console.error("Firestore removeDeadline failed:", e);
-        alert("Could not remove deadline — check your internet connection.");
-    }
+function nextDeadlineId() {
+    const user = getCurrentUser();
+    const n    = load(KEYS.dlCounter(user), 0) + 1;
+    store(KEYS.dlCounter(user), n);
+    return n;
 }
 
 
@@ -606,7 +539,7 @@ const DEADLINE_ICONS = {
     inspection: "🔍", notice: "📨", other: "📌"
 };
 
-async function addDeadline() {
+function addDeadline() {
     const label = document.getElementById("deadlineLabel").value.trim();
     const date  = document.getElementById("deadlineDate").value;
     const type  = document.getElementById("deadlineType").value;
@@ -614,25 +547,24 @@ async function addDeadline() {
     if (!label) { shake(document.getElementById("deadlineLabel")); return; }
     if (!date)  { shake(document.getElementById("deadlineDate"));  return; }
 
-    // Clear inputs immediately so the form feels responsive
-    // while the async Firestore write happens in the background.
+    const list = getDeadlines();
+    list.push({ id: nextDeadlineId(), label, date, type });
+    list.sort((a, b) => new Date(a.date) - new Date(b.date));
+    saveDeadlines(list);
+
     document.getElementById("deadlineLabel").value = "";
     document.getElementById("deadlineDate").value  = "";
-
-    await addDeadlineToFirestore(label, date, type);
-    // renderDeadlines() is called inside addDeadlineToFirestore()
-    // after the write succeeds, so the list always reflects Firestore.
+    renderDeadlines();
 }
 
-async function removeDeadline(firestoreId) {
-    await removeDeadlineFromFirestore(firestoreId);
+function removeDeadline(id) {
+    saveDeadlines(getDeadlines().filter(d => d.id !== id));
+    renderDeadlines();
 }
 
-async function renderDeadlines() {
+function renderDeadlines() {
     const list      = document.getElementById("trackerList");
-    // Show a loading state while we wait for Firestore
-    list.innerHTML  = `<p class="tracker-empty">Loading…</p>`;
-    const deadlines = await loadDeadlines();
+    const deadlines = getDeadlines();
 
     if (!deadlines.length) {
         list.innerHTML = `<p class="tracker-empty">No deadlines yet — add one to get started</p>`;
@@ -663,7 +595,7 @@ async function renderDeadlines() {
                 <p class="deadline-date">${formatted}</p>
             </div>
             <span class="deadline-countdown ${countdownClass}">${countdownText}</span>
-            <button class="deadline-delete" onclick="removeDeadline('${d.firestoreId}')" title="Remove">✕</button>
+            <button class="deadline-delete" onclick="removeDeadline(${d.id})" title="Remove">✕</button>
         </div>`;
     }).join("");
 }
@@ -749,30 +681,9 @@ const LEGAL_TERMS_FALLBACK = {
 async function init() {
     await seedIfNeeded();
     initUser();
-    // renderDeadlines() is async now (fetches from Firestore)
-    // so we await it to ensure deadlines show on first load.
-    await renderDeadlines();
+    renderDeadlines();
 }
 
 init().then(() => {
-    console.log("Rental Contract Helper — Firestore deadlines active ✓");
+    console.log("Rental Contract Helper — localStorage mode loaded ✓");
 });
-
-// ── Expose functions to window for HTML onclick handlers ──────────────────
-// ES modules are scoped — functions defined here are not on window by
-// default, so onclick="fn()" in HTML can't find them. Assigning them to
-// window explicitly restores that connection.
-
-window.loginUser      = loginUser;
-window.switchUser     = switchUser;
-window.goBack         = goBack;
-window.quickTerm      = quickTerm;
-window.explainTerm    = explainTerm;
-window.toggleRights   = toggleRights;
-window.calculateRent  = calculateRent;
-window.searchBuilding = searchBuilding;
-window.openBuilding   = openBuilding;
-window.submitReview   = submitReview;
-window.quickCalc      = quickCalc;
-window.addDeadline    = addDeadline;
-window.removeDeadline = removeDeadline;
