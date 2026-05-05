@@ -73,31 +73,32 @@ async function seedIfNeeded() {
     }
 }
 
-// ── Migrate buildings.json → Firestore (runs once) ───────────────────────
-// Reads buildings.json and writes each building as a Firestore document
-// with a stable doc ID matching the building's numeric id.
-// After migration the "migrated" flag prevents it running again.
+// ── Migrate buildings.json → Firestore (runs once per version) ───────────
+// Reads buildings.json and upserts each building into Firestore.
+// Uses { merge: true } so any edits made directly in the Firebase
+// console are preserved — only missing fields get filled in.
+// Bump MIGRATION_VERSION to force a re-run after adding new buildings.
+
+const MIGRATION_VERSION = "v2"; // bump this when buildings.json changes
+const MIGRATED_KEY = () => `rch:migrated:${MIGRATION_VERSION}`;
 
 async function migrateBuildings() {
-    if (load(KEYS.migrated())) return;
+    if (load(MIGRATED_KEY())) return;
     try {
         const res       = await fetch("data/buildings.json");
         const buildings = await res.json();
-        // Write all buildings in parallel using setDoc with explicit IDs
-        // so we can look them up by id later with doc(db,"buildings","1").
+        // setDoc with merge:true = upsert — creates the doc if missing,
+        // updates only changed fields if it already exists.
         await Promise.all(
             buildings.map(b =>
-                setDoc(doc(db, "buildings", String(b.id)), b)
+                setDoc(doc(db, "buildings", String(b.id)), b, { merge: true })
             )
         );
-        store(KEYS.migrated(), true);
-        // Clear the cache so the next getBuildings() call reads
-        // fresh data from Firestore rather than the pre-migration array.
+        store(MIGRATED_KEY(), true);
         _buildingsCache = null;
-        console.log(`Migrated ${buildings.length} buildings to Firestore ✓`);
+        console.log(`Migrated ${buildings.length} buildings to Firestore (${MIGRATION_VERSION}) ✓`);
     } catch (e) {
         console.warn("Building migration failed:", e);
-        // Don't set the flag — we want to retry on next load.
     }
 }
 
