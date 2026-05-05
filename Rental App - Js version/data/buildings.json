@@ -76,5 +76,206 @@
       { "stars": 4, "date": "Mar 2025", "text": "Beautiful building. The character is unmatched. Old heating but it works fine." },
       { "stars": 3, "date": "Jan 2025", "text": "Lovely place but the pipes are noisy at night. Management was responsive when I raised it." }
     ]
+  },
+  {
+    "id": 5,
+    "name": "The Pinebrook",
+    "address": "201 Pinebrook Drive, Northside",
+    "type": "Apartment",
+    "image": "",
+    "emoji": "🌲",
+    "monthlyRent": 1350,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sqft": 950,
+    "available": true,
+    "amenities": ["In-unit Laundry", "Balcony", "Parking", "Pet Friendly", "Air Conditioning"],
+    "description": "A well-kept mid-rise in a quiet residential neighbourhood. Units have private balconies and in-unit laundry — rare at this price point. Management is professional and repairs are handled promptly.",
+    "reviews": [
+      { "stars": 5, "date": "Apr 2026", "text": "In-unit laundry is a game changer. Building is clean and well managed." },
+      { "stars": 4, "date": "Feb 2026", "text": "Quiet neighbourhood, good value. Parking can be tight on weekends." },
+      { "stars": 4, "date": "Dec 2025", "text": "Solid apartment. Balcony is small but usable. Would renew." }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Harborview Residences",
+    "address": "55 Harbor Way, Waterfront District",
+    "type": "Condo",
+    "image": "",
+    "emoji": "⚓",
+    "monthlyRent": 2400,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sqft": 1100,
+    "available": true,
+    "amenities": ["Harbor View", "Concierge", "Gym", "Rooftop Deck", "Underground Parking", "EV Charging"],
+    "description": "Luxury waterfront condos with direct harbor views from every unit. Modern finishes, floor-to-ceiling windows, and a rooftop deck with grills. Premium price but hard to beat the location and quality.",
+    "reviews": [
+      { "stars": 5, "date": "Mar 2026", "text": "Waking up to harbor views every morning never gets old. Worth every cent." },
+      { "stars": 4, "date": "Jan 2026", "text": "Beautiful building and great amenities. Concierge is very helpful." },
+      { "stars": 3, "date": "Nov 2025", "text": "Stunning location but the HOA rules are strict and management can be slow on non-urgent repairs." }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Cedarwood Commons",
+    "address": "88 Cedarwood Circle, East Village",
+    "type": "Townhouse",
+    "image": "",
+    "emoji": "🏘️",
+    "monthlyRent": 1600,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sqft": 1400,
+    "available": true,
+    "amenities": ["Private Patio", "Attached Garage", "In-unit Laundry", "Storage", "Pet Friendly"],
+    "description": "Spacious two-storey townhouses in a quiet gated community. Great for families or anyone needing extra space. Each unit has a private patio and attached garage. Schools and parks are within walking distance.",
+    "reviews": [
+      { "stars": 5, "date": "Apr 2026", "text": "Best rental we have had. Tons of space, private garage, great neighbours." },
+      { "stars": 5, "date": "Feb 2026", "text": "Perfect for our family. Kids love the patio and it feels like a real home." },
+      { "stars": 4, "date": "Jan 2026", "text": "Very spacious. The gated entrance gives real peace of mind." }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Metro Lofts",
+    "address": "12 Industrial Boulevard, Arts District",
+    "type": "Loft",
+    "image": "",
+    "emoji": "🏗️",
+    "monthlyRent": 1750,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sqft": 1050,
+    "available": false,
+    "amenities": ["High Ceilings", "Exposed Brick", "Open Plan", "Bike Storage", "Rooftop Access"],
+    "description": "Industrial-style lofts in a converted warehouse in the heart of the Arts District. Soaring 14-foot ceilings, exposed brick, and open floor plans. Units are full of character — not ideal for those who need traditional bedroom separation.",
+    "reviews": [
+      { "stars": 5, "date": "Mar 2026", "text": "The space is incredible. High ceilings, great light, perfect for my home studio." },
+      { "stars": 4, "date": "Dec 2025", "text": "Love the aesthetic. The open plan can make it noisy but it suits my lifestyle." },
+      { "stars": 2, "date": "Oct 2025", "text": "Cool building but zero sound insulation between units. You hear everything." }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Willowbrook Gardens",
+    "address": "340 Willow Lane, Southside",
+    "type": "Apartment",
+    "image": "",
+    "emoji": "🌿",
+    "monthlyRent": 980,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sqft": 620,
+    "available": true,
+    "amenities": ["Garden Views", "Communal Garden", "Laundry Room", "Bike Storage", "Quiet Hours Policy"],
+    "description": "Affordable garden-facing apartments in a low-rise complex. Popular with students and young professionals. Management enforces quiet hours strictly which keeps the community peaceful. Close to the university and bus routes.",
+    "reviews": [
+      { "stars": 4, "date": "Apr 2026", "text": "Great price for the area. Quiet, clean, and close to campus." },
+      { "stars": 4, "date": "Feb 2026", "text": "Management is decent. Garden view from my window is lovely in spring." },
+      { "stars": 3, "date": "Nov 2025", "text": "Affordable but the laundry room is often busy. Units are a bit dated." }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Ashford Place",
+    "address": "7 Ashford Street, Midtown West",
+    "type": "Studio",
+    "image": "",
+    "emoji": "🪟",
+    "monthlyRent": 850,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sqft": 420,
+    "available": true,
+    "amenities": ["Furnished Option", "Keyless Entry", "Package Lockers", "Laundry", "Roof Terrace"],
+    "description": "Compact but smartly designed studios in a modern building. Optional furnished packages make this ideal for short-stay or first-time renters. Keyless entry and package lockers are a practical touch. Great transport links nearby.",
+    "reviews": [
+      { "stars": 5, "date": "Mar 2026", "text": "Moved in furnished and it was seamless. Compact but extremely well laid out." },
+      { "stars": 4, "date": "Jan 2026", "text": "Perfect starter apartment. Roof terrace is a great bonus." },
+      { "stars": 4, "date": "Nov 2025", "text": "Smart building, easy management. Small but very liveable." }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Redstone Court",
+    "address": "19 Redstone Avenue, University Quarter",
+    "type": "Apartment",
+    "image": "",
+    "emoji": "🧱",
+    "monthlyRent": 1100,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "sqft": 780,
+    "available": true,
+    "amenities": ["Study Rooms", "High-Speed Internet Included", "Bike Storage", "Laundry", "24hr Maintenance"],
+    "description": "Popular with graduate students and young professionals. High-speed internet is included in rent and the building has dedicated study rooms. 24-hour maintenance line is a genuine plus. Lively neighbourhood — can be noisy on weekends.",
+    "reviews": [
+      { "stars": 4, "date": "Apr 2026", "text": "Internet included is amazing. Study rooms are quiet and well equipped." },
+      { "stars": 3, "date": "Feb 2026", "text": "Good value but weekends can get loud. Management responds fast though." },
+      { "stars": 4, "date": "Dec 2025", "text": "Very convenient location. 24hr maintenance line actually works — used it once at midnight and someone came." }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Foxglove Terrace",
+    "address": "63 Foxglove Road, Garden District",
+    "type": "Apartment",
+    "image": "",
+    "emoji": "🦊",
+    "monthlyRent": 1450,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sqft": 900,
+    "available": false,
+    "amenities": ["Private Terrace", "Dishwasher", "Air Conditioning", "Parking", "Pet Friendly", "Storage Cage"],
+    "description": "Bright, modern apartments with private terraces in the sought-after Garden District. Each unit has a full-size dishwasher and dedicated storage cage. Management has a strong reputation. Units rarely stay vacant for long.",
+    "reviews": [
+      { "stars": 5, "date": "Mar 2026", "text": "The terrace sold it for me. Beautiful place to have morning coffee. Management is top notch." },
+      { "stars": 5, "date": "Jan 2026", "text": "Best apartment I have rented. Clean, modern, management actually cares." },
+      { "stars": 4, "date": "Oct 2025", "text": "Lovely area and well maintained. Would not leave if rent wasn't going up." }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Irongate Suites",
+    "address": "102 Irongate Boulevard, Financial District",
+    "type": "Condo",
+    "image": "",
+    "emoji": "🏦",
+    "monthlyRent": 3200,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sqft": 1600,
+    "available": true,
+    "amenities": ["Doorman", "Valet Parking", "Gym", "Private Lounge", "Smart Home System", "City Views"],
+    "description": "Premium high-rise condos in the Financial District targeting executives and corporate tenants. Smart home systems, valet parking, and a private residents' lounge. Management is formal and professional. High price reflects the premium offering.",
+    "reviews": [
+      { "stars": 5, "date": "Apr 2026", "text": "Everything is top tier. Doorman knows your name within a week. Worth the premium." },
+      { "stars": 4, "date": "Feb 2026", "text": "Excellent building. Smart home setup took some getting used to but works brilliantly." },
+      { "stars": 3, "date": "Dec 2025", "text": "Great amenities but management is very formal and slow to bend on anything. Read your lease carefully." }
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Cloverfield Walk",
+    "address": "27 Cloverfield Path, Riverside",
+    "type": "Townhouse",
+    "image": "",
+    "emoji": "🍀",
+    "monthlyRent": 1900,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sqft": 1550,
+    "available": true,
+    "amenities": ["River Views", "Private Garden", "Two Parking Spaces", "In-unit Laundry", "Fireplace"],
+    "description": "Charming riverside townhouses with private gardens and river views. Original fireplaces have been restored and work beautifully in winter. A rare find at this price for the size and outdoor space. Landlord is an independent owner — very hands-on and communicative.",
+    "reviews": [
+      { "stars": 5, "date": "Apr 2026", "text": "The fireplace and garden are incredible. Landlord is the best I have ever dealt with." },
+      { "stars": 5, "date": "Mar 2026", "text": "We renewed immediately. River views, private garden, amazing value for what you get." },
+      { "stars": 4, "date": "Jan 2026", "text": "Lovely home. The riverbank walk right outside the door is a bonus every morning." }
+    ]
   }
+
 ]
