@@ -1,0 +1,80 @@
+[
+  {
+    "id": 1,
+    "name": "Sunrise Apartments",
+    "address": "142 Oak Street, Downtown",
+    "type": "Apartment",
+    "image": "",
+    "emoji": "🌅",
+    "monthlyRent": 1200,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "sqft": 850,
+    "available": true,
+    "amenities": ["Parking", "Gym", "Laundry", "Air Conditioning", "Storage Unit"],
+    "description": "A well-maintained complex in the heart of downtown. Close to public transport and major shopping. Management is responsive and the community is quiet — a solid first choice for new renters.",
+    "reviews": [
+      { "stars": 5, "date": "Mar 2025", "text": "Great location, responsive landlord. Heating works perfectly all winter." },
+      { "stars": 4, "date": "Jan 2025", "text": "Nice building overall. A bit pricey but worth it for the amenities." },
+      { "stars": 3, "date": "Nov 2024", "text": "Maintenance can be slow on weekends, but they do fix things eventually." }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Greenview Tower",
+    "address": "78 Elm Avenue, Midtown",
+    "type": "Condo",
+    "image": "",
+    "emoji": "🏢",
+    "monthlyRent": 1800,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sqft": 1200,
+    "available": true,
+    "amenities": ["24/7 Concierge", "Rooftop Terrace", "Pool", "Gym", "Underground Parking"],
+    "description": "Modern high-rise with panoramic city views and upscale finishes. Ideal for professionals. Note: the elevator had ongoing maintenance issues in 2024 — worth asking management about current status.",
+    "reviews": [
+      { "stars": 2, "date": "Feb 2025", "text": "Landlord ignored multiple requests about the broken elevator for weeks." },
+      { "stars": 4, "date": "Dec 2024", "text": "Great views and modern interiors. Street noise can be an issue at night." },
+      { "stars": 4, "date": "Oct 2024", "text": "Generally a good place. Management improved a lot in the past year." }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Lakeside Studios",
+    "address": "9 Lakeview Road, West End",
+    "type": "Studio",
+    "image": "",
+    "emoji": "🏡",
+    "monthlyRent": 900,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sqft": 480,
+    "available": false,
+    "amenities": ["Lake View", "Pet Friendly", "Bike Storage", "Laundry", "Garden Access"],
+    "description": "Cosy studios with stunning lake views. Perfect for students or solo professionals. The landlord is highly responsive and tenants consistently praise the peaceful atmosphere.",
+    "reviews": [
+      { "stars": 5, "date": "Apr 2025", "text": "Best landlord I have ever had. Issues fixed same day. Highly recommend." },
+      { "stars": 5, "date": "Feb 2025", "text": "Super quiet, beautiful views, management genuinely cares about tenants." }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Heritage Flats",
+    "address": "33 Maple Lane, Old Town",
+    "type": "Apartment",
+    "image": "",
+    "emoji": "🏛️",
+    "monthlyRent": 1050,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "sqft": 720,
+    "available": true,
+    "amenities": ["Historic Building", "Shared Garden", "Hardwood Floors", "High Ceilings"],
+    "description": "Charming apartments inside a restored 1920s heritage building. High ceilings, original hardwood floors, and a shared garden. Some units have older plumbing — always ask before signing.",
+    "reviews": [
+      { "stars": 4, "date": "Mar 2025", "text": "Beautiful building. The character is unmatched. Old heating but it works fine." },
+      { "stars": 3, "date": "Jan 2025", "text": "Lovely place but the pipes are noisy at night. Management was responsive when I raised it." }
+    ]
+  }
+]
