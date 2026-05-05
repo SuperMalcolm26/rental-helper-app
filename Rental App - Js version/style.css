@@ -322,7 +322,7 @@ button:active { transform: translateY(0); filter: brightness(0.97); box-shadow: 
 
 .tracker-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: flex-start; }
 
-.tracker-form { /* uses existing .field-group styles */ }
+/* .tracker-form { uses existing .field-group styles } */
 
 .tracker-list-wrap { min-height: 120px; }
 .tracker-list { display: flex; flex-direction: column; gap: 10px; }

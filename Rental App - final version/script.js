@@ -12,18 +12,18 @@
 // ══════════════════════════════════════════════
 
 // ── Firebase setup ─────────────────────────────────────────────────────────────────
-// Firebase is loaded as ES modules (no npm needed).
+// Firebase is loaded as ES modules via their CDN (no npm needed).
 // initializeApp() registers your project config with the SDK.
 // getFirestore() returns the database instance used everywhere below.
 
-import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc,
          addDoc, setDoc, getDocs, deleteDoc,
          query, where, orderBy,
-         serverTimestamp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+         serverTimestamp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey:            "AIzaSyAvJpHLk0ZQDSBxfhhTcmxyrvhDlhh34F0", // I know the apiKey shouldn't be public, but this is just a test/ proof of concept. On an actual implementation this would be hidden
+    apiKey:            "AIzaSyAvJpHLk0ZQDSBxfhhTcmxyrvhDlhh34F0",
     authDomain:        "rental-helper-app.firebaseapp.com",
     projectId:         "rental-helper-app",
     storageBucket:     "rental-helper-app.firebasestorage.app",
@@ -33,8 +33,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
-
-// ── Storage key helpers ───
+// ── Storage key helpers ───────────────────────────────────────────────────
 // All keys are namespaced so multiple "users" can share one browser.
 
 const KEYS = {
@@ -92,6 +91,9 @@ async function migrateBuildings() {
             )
         );
         store(KEYS.migrated(), true);
+        // Clear the cache so the next getBuildings() call reads
+        // fresh data from Firestore rather than the pre-migration array.
+        _buildingsCache = null;
         console.log(`Migrated ${buildings.length} buildings to Firestore ✓`);
     } catch (e) {
         console.warn("Building migration failed:", e);
@@ -272,7 +274,9 @@ function getLocalLegalTerms() {
 
 async function searchFirestoreLegalTerms(raw) {
     try {
-        // Firestore can't do partial string matching, so we fetch all terms and filter client-side. 
+        // Firestore can't do partial string matching, so we fetch all
+        // terms and filter client-side. The collection is small so this
+        // is fine — a proper production app would use Algolia or similar.
         const snap = await getDocs(collection(db, "legalTerms"));
         const all  = snap.docs.map(d => d.data());
         const match = all.find(t => raw.includes(t.term.toLowerCase()));
@@ -629,7 +633,7 @@ function renderReviews(all) {
         : `<p class="no-reviews">No reviews yet — be the first to share your experience!</p>`;
 }
 
-function submitReview() {
+async function submitReview() {
     const rating = parseInt(document.getElementById("ratingValue").value);
     const text   = document.getElementById("reviewText").value.trim();
     const note   = document.getElementById("submitNote");
@@ -643,7 +647,9 @@ function submitReview() {
 
     saveUserReview(user, currentId, { stars: rating, date: dateStr, text });
 
-    const b   = getBuildingById(currentId);
+    // getBuildingById is async — must await it or b is a Promise,
+    // not a building, and b.reviews comes back undefined.
+    const b   = await getBuildingById(currentId);
     const all = allReviewsFor(currentId, b ? b.reviews : []);
     const avg = avgRating(all);
 
