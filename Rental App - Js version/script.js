@@ -1,14 +1,13 @@
 // ══════════════════════════════════════════════
 //  script.js — Rental Contract Helper
 //
-//  Buildings + legal terms: seeded from JSON
-//  files into localStorage on first load.
+//  Buildings: migrated from buildings.json into
+//  Firestore on first load, then read live.
 //
-//  Deadlines: read from / written to Firebase
-//  Firestore in real time. No backend server
-//  required — Firebase is called directly from
-//  the browser via the JS SDK (ES module).
+//  Legal terms: quick chips from local JSON;
+//  extended search falls back to Firestore.
 //
+//  Deadlines: read/written to Firestore.
 //  Reviews: stored in localStorage per user.
 // ══════════════════════════════════════════════
 
@@ -19,7 +18,7 @@
 
 import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc,
-         addDoc, getDocs, deleteDoc,
+         addDoc, setDoc, getDocs, deleteDoc,
          query, where, orderBy,
          serverTimestamp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -38,11 +37,11 @@ const db  = getFirestore(app);
 // All keys are namespaced so multiple "users" can share one browser.
 
 const KEYS = {
-    user:      ()         => "rch:currentUser",
-    buildings: ()         => "rch:buildings",
-    legalTerms:()         => "rch:legalTerms",
-    reviews:   (user)     => `rch:reviews:${user}`,
-    seeded:    ()         => "rch:seeded",
+    user:      ()     => "rch:currentUser",
+    legalTerms:()     => "rch:legalTerms",      // local quick-chips only
+    reviews:   (user) => `rch:reviews:${user}`,
+    seeded:    ()     => "rch:seeded",           // legal terms seeded flag
+    migrated:  ()     => "rch:migrated",         // buildings migrated to Firestore flag
 };
 
 function store(key, value) {
@@ -56,28 +55,46 @@ function load(key, fallback = null) {
 }
 
 
-// ── Seed data from JSON files ─────────────────────────────────────────────
-// On first ever load, fetch buildings.json and legal_terms.json and write
-// them into localStorage. After that the "seeded" flag prevents re-seeding.
+// ── Seed local legal terms from JSON ─────────────────────────────────────
+// Seeds only the quick-chip legal terms into localStorage on first load.
+// Buildings are handled separately by migrateBuildings() below.
 
 async function seedIfNeeded() {
     if (load(KEYS.seeded())) return;
     try {
-        const [bRes, lRes] = await Promise.all([
-            fetch("data/buildings.json"),
-            fetch("data/legal_terms.json")
-        ]);
-        const buildings   = await bRes.json();
-        const legalTerms  = await lRes.json();
-        store(KEYS.buildings(),  buildings);
+        const res       = await fetch("data/legal_terms.json");
+        const legalTerms = await res.json();
         store(KEYS.legalTerms(), legalTerms);
-        store(KEYS.seeded(),     true);
+        store(KEYS.seeded(), true);
     } catch (e) {
-        console.warn("Could not seed from JSON files — using inline defaults.", e);
-        // Inline fallback so the app still works if served without a web server
-        store(KEYS.buildings(),  BUILDINGS_FALLBACK);
+        console.warn("Could not seed legal terms — using inline defaults.", e);
         store(KEYS.legalTerms(), LEGAL_TERMS_FALLBACK);
-        store(KEYS.seeded(),     true);
+        store(KEYS.seeded(), true);
+    }
+}
+
+// ── Migrate buildings.json → Firestore (runs once) ───────────────────────
+// Reads buildings.json and writes each building as a Firestore document
+// with a stable doc ID matching the building's numeric id.
+// After migration the "migrated" flag prevents it running again.
+
+async function migrateBuildings() {
+    if (load(KEYS.migrated())) return;
+    try {
+        const res       = await fetch("data/buildings.json");
+        const buildings = await res.json();
+        // Write all buildings in parallel using setDoc with explicit IDs
+        // so we can look them up by id later with doc(db,"buildings","1").
+        await Promise.all(
+            buildings.map(b =>
+                setDoc(doc(db, "buildings", String(b.id)), b)
+            )
+        );
+        store(KEYS.migrated(), true);
+        console.log(`Migrated ${buildings.length} buildings to Firestore ✓`);
+    } catch (e) {
+        console.warn("Building migration failed:", e);
+        // Don't set the flag — we want to retry on next load.
     }
 }
 
@@ -117,19 +134,34 @@ function switchUser() {
 }
 
 
-// ── Buildings (read from localStorage) ───────────────────────────────────
+// ── Buildings (Firestore) ─────────────────────────────────────────────────
+// Buildings live in the "buildings" collection in Firestore.
+// We fetch all docs once and cache them in module-level memory for the
+// session — no need to re-fetch on every search or card open.
 
-function getBuildings() {
-    return load(KEYS.buildings(), []);
+let _buildingsCache = null;
+
+async function getBuildings() {
+    if (_buildingsCache) return _buildingsCache;
+    try {
+        const snap = await getDocs(collection(db, "buildings"));
+        _buildingsCache = snap.docs.map(d => d.data());
+        return _buildingsCache;
+    } catch (e) {
+        console.error("Firestore getBuildings failed:", e);
+        return BUILDINGS_FALLBACK;
+    }
 }
 
-function getBuildingById(id) {
-    return getBuildings().find(b => b.id === id) || null;
+async function getBuildingById(id) {
+    const all = await getBuildings();
+    return all.find(b => b.id === id) || null;
 }
 
-function searchBuildingsLocal(query) {
-    const q = query.toLowerCase();
-    return getBuildings().filter(b =>
+async function searchBuildingsFirestore(queryStr) {
+    const q   = queryStr.toLowerCase();
+    const all = await getBuildings();
+    return all.filter(b =>
         b.name.toLowerCase().includes(q)    ||
         b.address.toLowerCase().includes(q) ||
         b.type.toLowerCase().includes(q)
@@ -227,9 +259,27 @@ async function removeDeadlineFromFirestore(firestoreId) {
 
 
 // ── Legal terms ───────────────────────────────────────────────────────────
+// Quick chips use the local dictionary (fast, offline).
+// If the local dict has no match, we fall back to querying the
+// "legalTerms" Firestore collection for the extended searchbase.
 
-function getLegalTerms() {
+function getLocalLegalTerms() {
     return load(KEYS.legalTerms(), LEGAL_TERMS_FALLBACK);
+}
+
+async function searchFirestoreLegalTerms(raw) {
+    try {
+        // Firestore can't do partial string matching, so we fetch all
+        // terms and filter client-side. The collection is small so this
+        // is fine — a proper production app would use Algolia or similar.
+        const snap = await getDocs(collection(db, "legalTerms"));
+        const all  = snap.docs.map(d => d.data());
+        const match = all.find(t => raw.includes(t.term.toLowerCase()));
+        return match ? match.definition : null;
+    } catch (e) {
+        console.error("Firestore legalTerms search failed:", e);
+        return null;
+    }
 }
 
 
@@ -258,20 +308,31 @@ function quickTerm(term) {
     explainTerm();
 }
 
-function explainTerm() {
+async function explainTerm() {
     const raw  = document.getElementById("legalInput").value.trim().toLowerCase();
     const box  = document.getElementById("legalResult");
     const text = document.getElementById("legalText");
 
     if (!raw) { shake(document.getElementById("legalInput")); return; }
 
-    const terms = getLegalTerms();
-    const match = Object.keys(terms).find(k => raw.includes(k));
-    text.textContent = match
-        ? terms[match]
-        : "This term is not in our current dictionary. Try one of the quick-pick tags above.";
+    // Step 1: check the local quick-chip dictionary first (instant)
+    const localTerms = getLocalLegalTerms();
+    const localMatch = Object.keys(localTerms).find(k => raw.includes(k));
+    if (localMatch) {
+        text.textContent = localTerms[localMatch];
+        box.classList.remove("hidden");
+        box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+    }
 
+    // Step 2: local miss — fall back to the Firestore extended searchbase
+    text.textContent = "Searching extended dictionary…";
     box.classList.remove("hidden");
+
+    const firestoreMatch = await searchFirestoreLegalTerms(raw);
+    text.textContent = firestoreMatch
+        ?? "This term is not in our dictionary. Try one of the quick-pick tags above, or rephrase your search.";
+
     box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -306,8 +367,8 @@ function calculateRent() {
     renderRentResult(data, "budgetAlert", "rentStats", "feasibleRow", "rentBreakdown", "rentResult");
 }
 
-function quickCalc() {
-    const building = getBuildingById(currentId);
+async function quickCalc() {
+    const building = await getBuildingById(currentId);
     if (!building) return;
 
     const rate   = parseFloat(document.getElementById("quickRate").value);
@@ -458,13 +519,14 @@ function fmt(n) {
 
 // ── BUILDING SEARCH ───────────────────────────────────────────────────────
 
-function searchBuilding() {
+async function searchBuilding() {
     const q    = document.getElementById("buildingInput").value.trim();
     const grid = document.getElementById("buildingsGrid");
 
     if (!q) { shake(document.getElementById("buildingInput")); return; }
 
-    const results = searchBuildingsLocal(q);
+    grid.innerHTML = `<p class="placeholder-text">Searching…</p>`;
+    const results = await searchBuildingsFirestore(q);
 
     if (!results.length) {
         grid.innerHTML = `<p class="placeholder-text">😕 No results for "<strong>${esc(q)}</strong>". Try "Sunrise", "Tower", "Studio", or "Heritage".</p>`;
@@ -499,8 +561,8 @@ function searchBuilding() {
 
 // ── BUILDING DETAIL PAGE ──────────────────────────────────────────────────
 
-function openBuilding(id) {
-    const b = getBuildingById(id);
+async function openBuilding(id) {
+    const b = await getBuildingById(id);
     if (!b) return;
     currentId = id;
 
@@ -747,15 +809,15 @@ const LEGAL_TERMS_FALLBACK = {
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 async function init() {
-    await seedIfNeeded();
+    // Seed local legal terms and migrate buildings in parallel —
+    // both are one-time operations guarded by localStorage flags.
+    await Promise.all([seedIfNeeded(), migrateBuildings()]);
     initUser();
-    // renderDeadlines() is async now (fetches from Firestore)
-    // so we await it to ensure deadlines show on first load.
     await renderDeadlines();
 }
 
 init().then(() => {
-    console.log("Rental Contract Helper — Firestore deadlines active ✓");
+    console.log("Rental Contract Helper — Firestore active ✓");
 });
 
 // ── Expose functions to window for HTML onclick handlers ──────────────────
@@ -772,7 +834,7 @@ window.toggleRights   = toggleRights;
 window.calculateRent  = calculateRent;
 window.searchBuilding = searchBuilding;
 window.openBuilding   = openBuilding;
-window.submitReview   = submitReview;
 window.quickCalc      = quickCalc;
+window.submitReview   = submitReview;
 window.addDeadline    = addDeadline;
 window.removeDeadline = removeDeadline;
