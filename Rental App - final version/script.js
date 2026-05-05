@@ -617,6 +617,7 @@ async function openBuilding(id) {
     document.getElementById("quickResult").classList.add("hidden");
 
     initStars();
+    initRequestButton();  // check existing request status for this building
     goTo("page-building");
 }
 
@@ -666,6 +667,114 @@ async function submitReview() {
     document.querySelectorAll("#starRating .star").forEach(s => s.classList.remove("active"));
     note.style.color   = "#0f766e";
     note.textContent   = "✓ Review submitted — thank you!";
+}
+
+
+// ── RENT REQUESTS (Firestore) ─────────────────────────────────────────────
+// Firestore structure:
+//   /requests/{auto-id}
+//       username    : string   -- the user making the request
+//       buildingId  : number   -- the building's numeric id
+//       buildingName: string   -- denormalised for easy reading in console
+//       requestedAt : timestamp
+//
+// Duplicate detection: before writing, we query for any existing doc
+// with the same username + buildingId. If one exists we reject it
+// client-side and surface a clear message rather than writing a duplicate.
+
+// Check whether the current user has already requested this building.
+async function hasExistingRequest(buildingId) {
+    const user = getCurrentUser();
+    if (!user) return false;
+    try {
+        const q    = query(
+            collection(db, "requests"),
+            where("username",   "==", user),
+            where("buildingId", "==", buildingId)
+        );
+        const snap = await getDocs(q);
+        return !snap.empty;
+    } catch (e) {
+        // If the check itself fails, return false and let the write attempt surface the real error.
+        console.error("Request duplicate check failed:", e);
+        return false;
+    }
+}
+
+// Submit a rent request for the currently open building.
+async function submitRentRequest() {
+    const user = getCurrentUser();
+    const btn  = document.getElementById("requestBtn");
+    const note = document.getElementById("requestNote");
+
+    if (!user) {
+        note.className = "request-error sidebar-note";
+        note.textContent = "You must be logged in to submit a request.";
+        return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = "Submitting…";
+
+    try {
+        const building = await getBuildingById(currentId);
+        if (!building) throw new Error("Building not found.");
+
+        // Duplicate check before writing
+        const duplicate = await hasExistingRequest(currentId);
+        if (duplicate) {
+            const reason = "request already made";
+            console.log(`Request failed — ${reason} (user: ${user}, building: ${currentId})`);
+            note.className   = "request-error sidebar-note";
+            note.textContent = "You have already submitted a request for this building.";
+            btn.textContent  = "Already Requested";
+            return;
+        }
+
+        // Write the request document to Firestore
+        await addDoc(collection(db, "requests"), {
+            username:     user,
+            buildingId:   currentId,
+            buildingName: building.name,
+            requestedAt:  serverTimestamp()
+        });
+
+        console.log(`Request successful — user: ${user}, building: "${building.name}" (id: ${currentId})`);
+        note.className   = "request-success sidebar-note";
+        note.textContent = "✓ Request submitted! The landlord will be in touch.";
+        btn.textContent  = "Request Sent";
+
+    } catch (e) {
+        const reason = e.message || "server error";
+        console.error(`Request failed — ${reason}`, e);
+        note.className   = "request-error sidebar-note";
+        note.textContent = "Something went wrong. Please try again later.";
+        btn.disabled     = false;
+        btn.textContent  = "Send Request";
+    }
+}
+
+// Reset the request button state when a new building is opened.
+// Called inside openBuilding() so the button reflects the current
+// user's request status for each building they view.
+async function initRequestButton() {
+    const btn  = document.getElementById("requestBtn");
+    const note = document.getElementById("requestNote");
+
+    // Reset to default state first
+    btn.disabled     = false;
+    btn.textContent  = "Send Request";
+    note.className   = "sidebar-note";
+    note.textContent = "Interested in this building? Submit a request and the landlord will be in touch.";
+
+    // Then check if a request already exists and update accordingly
+    const duplicate = await hasExistingRequest(currentId);
+    if (duplicate) {
+        btn.disabled    = true;
+        btn.textContent = "Already Requested";
+        note.className  = "request-success sidebar-note";
+        note.textContent = "✓ You have already submitted a request for this building.";
+    }
 }
 
 
@@ -845,4 +954,5 @@ window.openBuilding   = openBuilding;
 window.quickCalc      = quickCalc;
 window.submitReview   = submitReview;
 window.addDeadline    = addDeadline;
-window.removeDeadline = removeDeadline;
+window.removeDeadline    = removeDeadline;
+window.submitRentRequest = submitRentRequest;

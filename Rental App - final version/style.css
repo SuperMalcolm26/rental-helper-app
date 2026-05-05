@@ -322,7 +322,7 @@ button:active { transform: translateY(0); filter: brightness(0.97); box-shadow: 
 
 .tracker-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: flex-start; }
 
-/* .tracker-form { uses existing .field-group styles } */
+/* .tracker-form uses existing .field-group styles */
 
 .tracker-list-wrap { min-height: 120px; }
 .tracker-list { display: flex; flex-direction: column; gap: 10px; }
@@ -579,3 +579,35 @@ button:active { transform: translateY(0); filter: brightness(0.97); box-shadow: 
 }
 
 .hero-switch-btn:hover { color: #fff; }
+
+/* ── Rent request card ───────────────────────────────────────────────────── */
+
+.btn-request {
+    background: linear-gradient(135deg, #0f766e, #0d6b5e);
+    color: white;
+    border: none;
+    font-weight: 500;
+}
+
+.btn-request:hover {
+    background: linear-gradient(135deg, #0d6b5e, #0a5c50);
+}
+
+.btn-request:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.request-success {
+    font-size: 0.82rem;
+    color: #0f766e;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.request-error {
+    font-size: 0.82rem;
+    color: #dc2626;
+    margin-top: 4px;
+}
