@@ -36,7 +36,8 @@ const db  = getFirestore(app);
 // ── Storage key helpers ───────────────────────────────────────────────────
 // All keys are namespaced so multiple "users" can share one browser.
 
-const KEYS = {
+//rch stands for rental contract helper, used to differentiate terms in cache and avoid collisions
+const KEYS = { 
     user:      ()     => "rch:currentUser",
     legalTerms:()     => "rch:legalTerms",      // local quick-chips only
     reviews:   (user) => `rch:reviews:${user}`,
@@ -103,6 +104,13 @@ async function migrateBuildings() {
 }
 
 
+//Tools
+function capitalised(str) {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
 // ── User / "account" management ───────────────────────────────────────────
 
 function getCurrentUser() {
@@ -119,7 +127,7 @@ function initUser() {
     if (!user) {
         document.getElementById("loginOverlay").classList.remove("hidden");
     } else {
-        document.getElementById("currentUserLabel").textContent = user;
+        document.getElementById("currentUserLabel").textContent = capitalised(user);
         document.getElementById("loginOverlay").classList.add("hidden");
     }
 }
@@ -128,7 +136,7 @@ async function loginUser() {
     const input = document.getElementById("usernameInput").value.trim();
     if (!input) { shake(document.getElementById("usernameInput")); return; }
     setCurrentUser(input);
-    document.getElementById("currentUserLabel").textContent = input.toLowerCase();
+    document.getElementById("currentUserLabel").textContent =capitalised(input.toLowerCase());
     document.getElementById("loginOverlay").classList.add("hidden");
     // Now that we have a user, load their deadlines from Firestore.
     await renderDeadlines();
