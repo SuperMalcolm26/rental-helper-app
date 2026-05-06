@@ -1,7 +1,3 @@
-/* ══════════════════════════════════════════════
-   style.css — Rental Contract Helper, Phase 1
-══════════════════════════════════════════════ */
-
 :root {
     --card-bg: rgba(255,255,255,0.93);
     --text-main: #1a2332;
@@ -98,12 +94,6 @@ body {
 }
 .hero-subtitle { color: rgba(255,255,255,0.80); font-size: 0.97rem; max-width: 620px; line-height: 1.6; }
 
-.legal-disclaimer {
-    font-size: 0.72rem;
-    color: #9ca3af;
-    line-height: 1.5;
-    margin: 4px 0 8px;
-}
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 
@@ -295,6 +285,13 @@ button:active { transform: translateY(0); filter: brightness(0.97); box-shadow: 
 .right-name { font-size: 0.88rem; font-weight: 600; margin-bottom: 3px; }
 .right-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; }
 
+.legal-disclaimer {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    line-height: 1.5;
+    margin: 4px 0 8px;
+}
+
 /* ── Building search grid ───────────────────────────────────────────────── */
 
 .buildings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; }
@@ -329,7 +326,6 @@ button:active { transform: translateY(0); filter: brightness(0.97); box-shadow: 
 
 .tracker-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: flex-start; }
 
-/* .tracker-form uses existing .field-group styles */
 
 .tracker-list-wrap { min-height: 120px; }
 .tracker-list { display: flex; flex-direction: column; gap: 10px; }
