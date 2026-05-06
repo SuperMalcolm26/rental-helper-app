@@ -255,9 +255,7 @@
 </div>
 
 
-<!-- ══════════════════════════════════════════
-     PAGE: BUILDING DETAIL
-══════════════════════════════════════════ -->
+<!-- PAGE: BUILDING DETAIL -->
 <div id="page-building" class="page">
 
     <div class="detail-nav">
@@ -268,7 +266,6 @@
     </div>
 
     <div class="container">
-
         <div class="b-hero" id="bHero">
             <div class="b-hero-img" id="bHeroImg">🏢</div>
             <div class="b-hero-info">
@@ -329,6 +326,7 @@
                 <div class="sidebar-card sidebar-calc">
                     <h3 class="sidebar-title">Quick Cost Estimate</h3>
                     <p class="sidebar-note">Uses this building's rent. Add a rate and duration to project your total cost.</p>
+
                     <div class="field-group">
                         <label>Annual Increase Rate (%)</label>
                         <input type="number" id="quickRate" placeholder="e.g. 5" min="0" max="100" step="0.1">
@@ -341,6 +339,7 @@
                         <label>Your Budget ($) <span class="label-optional">optional</span></label>
                         <input type="number" id="quickBudget" placeholder="e.g. 15000" min="0">
                     </div>
+                    
                     <button class="btn btn-rent btn-full" onclick="quickCalc()">Estimate</button>
                     <div class="result-box hidden" id="quickResult">
                         <span class="result-label">💰 Estimate</span>
