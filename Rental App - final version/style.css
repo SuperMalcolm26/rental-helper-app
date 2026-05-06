@@ -98,14 +98,11 @@ body {
 }
 .hero-subtitle { color: rgba(255,255,255,0.80); font-size: 0.97rem; max-width: 620px; line-height: 1.6; }
 
-.hero-disclaimer {
-    margin-top: 0.75rem;
+.legal-disclaimer {
     font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.5);
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
+    color: #9ca3af;
     line-height: 1.5;
+    margin: 4px 0 8px;
 }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
