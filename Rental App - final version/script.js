@@ -36,11 +36,9 @@ const db  = getFirestore(app);
 // ── Storage key helpers ───────────────────────────────────────────────────
 // All keys are namespaced so multiple "users" can share one browser.
 
-//rch stands for rental contract helper, used to differentiate terms in cache and avoid collisions
-const KEYS = { 
+const KEYS = {
     user:      ()     => "rch:currentUser",
     legalTerms:()     => "rch:legalTerms",      // local quick-chips only
-    reviews:   (user) => `rch:reviews:${user}`,
     seeded:    ()     => "rch:seeded",           // legal terms seeded flag
     migrated:  ()     => "rch:migrated",         // buildings migrated to Firestore flag
 };
@@ -104,13 +102,6 @@ async function migrateBuildings() {
 }
 
 
-//Tools
-function capitalised(str) {
-    if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-
 // ── User / "account" management ───────────────────────────────────────────
 
 function getCurrentUser() {
@@ -136,7 +127,7 @@ async function loginUser() {
     const input = document.getElementById("usernameInput").value.trim();
     if (!input) { shake(document.getElementById("usernameInput")); return; }
     setCurrentUser(input);
-    document.getElementById("currentUserLabel").textContent =capitalised(input.toLowerCase());
+    document.getElementById("currentUserLabel").textContent = capitalised(input.toLowerCase());
     document.getElementById("loginOverlay").classList.add("hidden");
     // Now that we have a user, load their deadlines from Firestore.
     await renderDeadlines();
@@ -183,26 +174,47 @@ async function searchBuildingsFirestore(queryStr) {
 }
 
 
-// ── Reviews (scoped per user, stored separately from seed data) ───────────
-// Seed reviews live inside buildings.json and are read-only.
-// User-submitted reviews are stored under rch:reviews:<username>.
+// ── Reviews (Firebase Firestore) ─────────────────────────────────────────
+// Firestore structure:
+//   /reviews/{auto-id}
+//       username   : string    -- who wrote the review
+//       buildingId : number    -- which building
+//       stars      : number    -- 1–5
+//       text       : string
+//       date       : string    -- "Mon YYYY" formatted client-side
+//       createdAt  : timestamp -- server-side for ordering
+//
+// Seed reviews (from buildings.json) are read-only and never written
+// to Firestore — they are merged in client-side when rendering.
 
-function getUserReviews(user) {
-    return load(KEYS.reviews(user), {});
+// Write a new review document to Firestore.
+async function saveUserReview(user, buildingId, review) {
+    await addDoc(collection(db, "reviews"), {
+        username:   user,
+        buildingId,
+        stars:      review.stars,
+        text:       review.text,
+        date:       review.date,
+        createdAt:  serverTimestamp()
+    });
 }
 
-function saveUserReview(user, buildingId, review) {
-    const all = getUserReviews(user);
-    if (!all[buildingId]) all[buildingId] = [];
-    all[buildingId].push(review);
-    store(KEYS.reviews(user), all);
-}
-
-// Returns the combined seed + user reviews for a building
-function allReviewsFor(buildingId, seedReviews) {
-    const user    = getCurrentUser();
-    const userRev = user ? (getUserReviews(user)[buildingId] || []) : [];
-    return [...(seedReviews || []), ...userRev];
+// Fetch all user-submitted reviews for a building from Firestore,
+// then merge with the seed reviews from buildings.json.
+async function allReviewsFor(buildingId, seedReviews) {
+    try {
+        const q    = query(
+            collection(db, "reviews"),
+            where("buildingId", "==", buildingId),
+            orderBy("createdAt", "asc")
+        );
+        const snap     = await getDocs(q);
+        const userRevs = snap.docs.map(d => d.data());
+        return [...(seedReviews || []), ...userRevs];
+    } catch (e) {
+        console.error("Firestore allReviewsFor failed:", e);
+        return [...(seedReviews || [])];
+    }
 }
 
 
@@ -580,7 +592,7 @@ async function openBuilding(id) {
     if (!b) return;
     currentId = id;
 
-    const all = allReviewsFor(id, b.reviews);
+    const all = await allReviewsFor(id, b.reviews);
     const avg = avgRating(all);
 
     document.getElementById("bHeroImg").innerHTML = b.image
@@ -655,12 +667,11 @@ async function submitReview() {
     const now     = new Date();
     const dateStr = now.toLocaleString("en-US", { month: "short", year: "numeric" });
 
-    saveUserReview(user, currentId, { stars: rating, date: dateStr, text });
+    // saveUserReview and allReviewsFor are both async now — Firestore calls.
+    await saveUserReview(user, currentId, { stars: rating, date: dateStr, text });
 
-    // getBuildingById is async — must await it or b is a Promise,
-    // not a building, and b.reviews comes back undefined.
     const b   = await getBuildingById(currentId);
-    const all = allReviewsFor(currentId, b ? b.reviews : []);
+    const all = await allReviewsFor(currentId, b ? b.reviews : []);
     const avg = avgRating(all);
 
     document.getElementById("bRatingRow").innerHTML = `
@@ -728,6 +739,17 @@ async function submitRentRequest() {
         const building = await getBuildingById(currentId);
         if (!building) throw new Error("Building not found.");
 
+        // Availability check — reject before writing if unit is unavailable
+        if (!building.available) {
+            const reason = "unit unavailable";
+            console.log(`Request failed — ${reason} (user: ${user}, building: "${building.name}")`);
+            note.className   = "request-error sidebar-note";
+            note.textContent = "This unit is currently unavailable and cannot be requested.";
+            btn.disabled     = true;
+            btn.textContent  = "Unavailable";
+            return;
+        }
+
         // Duplicate check before writing
         const duplicate = await hasExistingRequest(currentId);
         if (duplicate) {
@@ -775,12 +797,22 @@ async function initRequestButton() {
     note.className   = "sidebar-note";
     note.textContent = "Interested in this building? Submit a request and the landlord will be in touch.";
 
-    // Then check if a request already exists and update accordingly
+    // Check availability first
+    const building = await getBuildingById(currentId);
+    if (building && !building.available) {
+        btn.disabled     = true;
+        btn.textContent  = "Unavailable";
+        note.className   = "request-error sidebar-note";
+        note.textContent = "This unit is currently unavailable.";
+        return;
+    }
+
+    // Then check if a request already exists
     const duplicate = await hasExistingRequest(currentId);
     if (duplicate) {
-        btn.disabled    = true;
-        btn.textContent = "Already Requested";
-        note.className  = "request-success sidebar-note";
+        btn.disabled     = true;
+        btn.textContent  = "Already Requested";
+        note.className   = "request-success sidebar-note";
         note.textContent = "✓ You have already submitted a request for this building.";
     }
 }
@@ -879,6 +911,11 @@ function initStars() {
 
 
 // ── SHARED HELPERS ────────────────────────────────────────────────────────
+
+function capitalised(str) {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 function avgRating(reviews) {
     if (!reviews.length) return 0;
