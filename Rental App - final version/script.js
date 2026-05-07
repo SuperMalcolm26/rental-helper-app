@@ -10,13 +10,18 @@
 //  Reviews: Stored in firestore.
 // ══════════════════════════════════════════════
 
-// ── Firebase setup ─────────────────────────────────────────────────────────────────
+// ── Firebase setup ───────────────────────────────────────────────────────────────────────────────
 
-import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+//#region Backend 
+
+//#region Initialization
+import { initializeApp }                          
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc,
          addDoc, setDoc, getDocs, deleteDoc,
          query, where, orderBy,
-         serverTimestamp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+         serverTimestamp }                        
+         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey:            "AIzaSyAvJpHLk0ZQDSBxfhhTcmxyrvhDlhh34F0", // Will not be added in actual version; API keys should be kept secret
@@ -31,7 +36,7 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
 
-// ── Storage key helpers ───────────────────────────────────────────────────
+// ── Storage key helpers ────────────────────────────────────────────────────────────────────────
 // keys are named to prevent conflict with other apps.
 
 const KEYS = {
@@ -46,7 +51,7 @@ function store(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
 }
 
-
+//Reads key from localstorage
 function load(key, fallback = null) {
     const raw = localStorage.getItem(key);
     if (raw === null) return fallback;
@@ -54,14 +59,14 @@ function load(key, fallback = null) {
 }
 
 
-// ── Seed local legal terms from JSON ─────────────────────────────────────
-// Seeds only the quick-chip legal terms into localStorage on first load.
+// ── Seed local legal terms from JSON ─────────────────────────────────────────────────────────────────
+// Seeds only the quick search legal terms into localStorage on first load.
 // Buildings are handled separately by migrateBuildings() below.
 
 async function seedIfNeeded() {
     if (load(KEYS.seeded())) return;
     try {
-        const res       = await fetch("data/legal_terms.json");
+        const res = await fetch("data/legal_terms.json");
         const legalTerms = await res.json();
         store(KEYS.legalTerms(), legalTerms);
         store(KEYS.seeded(), true);
@@ -72,25 +77,24 @@ async function seedIfNeeded() {
     }
 }
 
-// ── Migrate buildings.json → Firestore (runs once per version) ───────────
+// ── Migrate buildings.json into Firestore (runs once per version) ────────────────────────────────
 // Reads buildings.json and upserts each building into Firestore.
-// Uses { merge: true } so any edits made directly in the Firebase
-// console are preserved — only missing fields get filled in.
+// Uses { merge: true } so any edits made directly in the Firebase console are preserved, and only missing fields get filled in.
 // Bump MIGRATION_VERSION to force a re-run after adding new buildings.
 
-const MIGRATION_VERSION = "v2"; // bump this when buildings.json changes
+const MIGRATION_VERSION = "v2"; // Increase this when buildings.json changes
 const MIGRATED_KEY = () => `rch:migrated:${MIGRATION_VERSION}`;
 
 async function migrateBuildings() {
     if (load(MIGRATED_KEY())) return;
     try {
-        const res       = await fetch("data/buildings.json");
+        const res = await fetch("data/buildings.json");
         const buildings = await res.json();
-        // setDoc with merge:true = upsert — creates the doc if missing,
-        // updates only changed fields if it already exists.
+
+        //Creates the documen if missing, updates only changed fields if it already exists.
         await Promise.all(
-            buildings.map(b =>
-                setDoc(doc(db, "buildings", String(b.id)), b, { merge: true })
+            buildings.map(
+                b => setDoc(doc(db, "buildings", String(b.id)), b, { merge: true })
             )
         );
         store(MIGRATED_KEY(), true);
@@ -100,19 +104,21 @@ async function migrateBuildings() {
         console.warn("Building migration failed:", e);
     }
 }
+//#endregion
 
+// #region User / Account management ────────────────────────────────────────────────────────────────────────────────────
 
-// ── User / "account" management ───────────────────────────────────────────
-
+//Obtains current user from localstorage (cache)
 function getCurrentUser() {
     return load(KEYS.user(), null);
 }
 
+//Stores current user in localstorage
 function setCurrentUser(username) {
     store(KEYS.user(), username.trim().toLowerCase());
 }
 
-// Show the login prompt if no user is set, otherwise show the app.
+// Shows the login prompt if no user is set, otherwise shows the app.
 function initUser() {
     const user = getCurrentUser();
     if (!user) {
@@ -123,29 +129,30 @@ function initUser() {
     }
 }
 
+//Asks user for username input, and loads deadlines from firestore upon successful launch
 async function loginUser() {
     const input = document.getElementById("usernameInput").value.trim();
     if (!input) { shake(document.getElementById("usernameInput")); return; }
     setCurrentUser(input);
     document.getElementById("currentUserLabel").textContent = capitalised(input.toLowerCase());
     document.getElementById("loginOverlay").classList.add("hidden");
-    // Now that we have a user, load their deadlines from Firestore.
     await renderDeadlines();
 }
 
+//Clears the user in localstorage and reprompts for username
 function switchUser() {
     store(KEYS.user(), null);
     location.reload();
 }
+//#endregion
 
 
-// ── Buildings (Firestore) ─────────────────────────────────────────────────
-// Buildings live in the "buildings" collection in Firestore.
-// We fetch all docs once and cache them in module-level memory for the
-// session — no need to re-fetch on every search or card open.
+// #region Buildings (Firestore) ────────────────────────────────────────────────────────────────────────────────────────
+// Buildings are stored in "buildings" in Firestore. We fetch all docs once and store them in module-level memory for the session.
 
 let _buildingsCache = null;
 
+//Attempts to fetch buildings from firestore
 async function getBuildings() {
     if (_buildingsCache) return _buildingsCache;
     try {
@@ -154,38 +161,40 @@ async function getBuildings() {
         return _buildingsCache;
     } catch (e) {
         console.error("Firestore getBuildings failed:", e);
-        return BUILDINGS_FALLBACK;
+        return BUILDINGS_FALLBACK; //Empty building object
     }
 }
 
+//Searches for a building by it's id number
 async function getBuildingById(id) {
     const all = await getBuildings();
     return all.find(b => b.id === id) || null;
 }
 
+//Returns all buildings containing a specific character anywhere in the name, address or type
 async function searchBuildingsFirestore(queryStr) {
     const q   = queryStr.toLowerCase();
     const all = await getBuildings();
     return all.filter(b =>
-        b.name.toLowerCase().includes(q)    ||
-        b.address.toLowerCase().includes(q) ||
-        b.type.toLowerCase().includes(q)
+        b.name.toLowerCase().includes(q)    || //name
+        b.address.toLowerCase().includes(q) || //address
+        b.type.toLowerCase().includes(q)       //type
     );
 }
+//#endregion
 
 
-// ── Reviews (Firebase Firestore) ─────────────────────────────────────────
+// #region Reviews (Firestore) ───────────────────────────────────────────────────────────────────────────────────────────
 // Firestore structure:
 //   /reviews/{auto-id}
-//       username   : string    -- who wrote the review
-//       buildingId : number    -- which building
-//       stars      : number    -- 1–5
-//       text       : string
+//       username   : string    -- User who wrote the review
+//       buildingId : number    -- Building number the review belongs to
+//       stars      : number    -- Building rating (from 1–5)
+//       text       : string    -- The content of the Review
 //       date       : string    -- "Mon YYYY" formatted client-side
-//       createdAt  : timestamp -- server-side for ordering
+//       createdAt  : timestamp -- Used server-side for ordering
 //
-// Seed reviews (from buildings.json) are read-only and never written
-// to Firestore — they are merged in client-side when rendering.
+// Seed reviews contained in  buildings.json are read-only and never written to Firestore. They are merged with the reviews when rendering on the client-side.
 
 // Write a new review document to Firestore.
 async function saveUserReview(user, buildingId, review) {
@@ -199,11 +208,10 @@ async function saveUserReview(user, buildingId, review) {
     });
 }
 
-// Fetch all user-submitted reviews for a building from Firestore,
-// then merge with the seed reviews from buildings.json.
+// Fetch all user-submitted reviews for a building from Firestore and merge with the seed reviews from buildings.json.
 async function allReviewsFor(buildingId, seedReviews) {
     try {
-        const q    = query(
+        const q = query(
             collection(db, "reviews"),
             where("buildingId", "==", buildingId),
             orderBy("createdAt", "asc")
@@ -216,26 +224,27 @@ async function allReviewsFor(buildingId, seedReviews) {
         return [...(seedReviews || [])];
     }
 }
+// #endregion
 
 
-// ── Deadlines (Firebase Firestore) ───────────────────────────────────────────────
+// #region Deadlines (Firestore) ─────────────────────────────────────────────────────────────────────────────────────────
 // Firestore structure:
 //   /deadlines/{auto-id}
-//       username  : string    -- scopes documents per user
-//       label     : string
+//       username  : string    -- Owner of the deadlines
+//       label     : string    -- User defined name of deadline
 //       date      : string    -- "YYYY-MM-DD"
-//       type      : string
-//       createdAt : timestamp -- set server-side for stable ordering
+//       type      : string    -- Type of deadline (renewal, payment, inspection, notice deadline, other)
+//       createdAt : timestamp -- set server-side for ordering
 //
-// All functions are async because Firestore calls are network
-// operations that return Promises we need to await.
+// All functions are async because Firestore calls are network operations that return Promises.
 
-// Fetch all deadlines for the current user, sorted by date ascending.
+
+// Fetches all deadlines for the current user, sorted by date ascending.
 async function loadDeadlines() {
     const user = getCurrentUser();
     if (!user) return [];
     try {
-        const q    = query(
+        const q  = query(
             collection(db, "deadlines"),
             where("username", "==", user),
             orderBy("date", "asc")
@@ -250,14 +259,13 @@ async function loadDeadlines() {
     }
 }
 
-// Write a new deadline document and re-render the list.
+// Writes a new deadline document and re-renders the list of deadlines. Throws an error if unsuccesful
 async function addDeadlineToFirestore(label, date, type) {
     const user = getCurrentUser();
     if (!user) return;
     try {
         // addDoc() creates a document with an auto-generated ID.
-        // serverTimestamp() lets Firestore fill in the time —
-        // more reliable than using the browser clock.
+        // serverTimestamp() lets Firestore fill in the time
         await addDoc(collection(db, "deadlines"), {
             username:  user,
             label,
@@ -272,7 +280,7 @@ async function addDeadlineToFirestore(label, date, type) {
     }
 }
 
-// Delete a document by its Firestore auto-generated ID.
+// Deletes a document by its Firestore ID.
 async function removeDeadlineFromFirestore(firestoreId) {
     try {
         await deleteDoc(doc(db, "deadlines", firestoreId));
@@ -282,22 +290,21 @@ async function removeDeadlineFromFirestore(firestoreId) {
         alert("Could not remove deadline — check your internet connection.");
     }
 }
+// #endregion
 
+// #region Legal terms ───────────────────────────────────────────────────────────────────────────────────────────────────
+// Quick searches use the local dictionary.
+// If the local dictionary has no match, we fall back to querying the "legalTerms" Firestore collection for the extended searchbase.
 
-// ── Legal terms ───────────────────────────────────────────────────────────
-// Quick chips use the local dictionary (fast, offline).
-// If the local dict has no match, we fall back to querying the
-// "legalTerms" Firestore collection for the extended searchbase.
-
+//Searches the local dictionary
 function getLocalLegalTerms() {
     return load(KEYS.legalTerms(), LEGAL_TERMS_FALLBACK);
 }
 
+//Searches firestore database. Returns an error is the term is not found
 async function searchFirestoreLegalTerms(raw) {
     try {
-        // Firestore can't do partial string matching, so we fetch all
-        // terms and filter client-side. The collection is small so this
-        // is fine — a proper production app would use Algolia or similar.
+        // Firestore cannott do partial string matching, so we fetch all terms and filter client-side.
         const snap = await getDocs(collection(db, "legalTerms"));
         const all  = snap.docs.map(d => d.data());
         const match = all.find(t => raw.includes(t.term.toLowerCase()));
@@ -307,33 +314,170 @@ async function searchFirestoreLegalTerms(raw) {
         return null;
     }
 }
+//#endregion
 
 
-// ── PAGE STATE ────────────────────────────────────────────────────────────
+// #region RENT REQUESTS (Firestore) ─────────────────────────────────────────────
+// Firestore structure:
+//   /requests/{auto-id}
+//       username    : string    -- Name of the user making the request
+//       buildingId  : number    -- The building's numeric id
+//       buildingName: string    -- Denormalised for easy reading in console
+//       requestedAt : timestamp -- For ordering
+//
+// Duplicate detection: before writing, we query for any existing doc with the same username and buildingId. If one exists we reject it client-side
+//  and surface a clear message rather than writing a duplicate.
+
+// Check whether the current user has already requested this building.
+async function hasExistingRequest(buildingId) {
+    const user = getCurrentUser();
+    if (!user) return false;
+    try {
+        const q    = query(
+            collection(db, "requests"),
+            where("username",   "==", user),
+            where("buildingId", "==", buildingId)
+        );
+        const snap = await getDocs(q);
+        return !snap.empty;
+    } catch (e) {
+        // If the check itself fails, return false and let the write attempt surface the real error.
+        console.error("Request duplicate check failed:", e);
+        return false;
+    }
+}
+
+// Submit a rent request for the currently open building.
+async function submitRentRequest() {
+    const user = getCurrentUser();
+    const btn  = document.getElementById("requestBtn");
+    const note = document.getElementById("requestNote");
+
+    if (!user) {
+        note.className = "request-error sidebar-note";
+        note.textContent = "You must be logged in to submit a request.";
+        return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = "Submitting…";
+
+    try {
+        const building = await getBuildingById(currentId);
+        if (!building) throw new Error("Building not found.");
+
+        // Availability check
+        if (!building.available) {
+            const reason = "unit unavailable";
+            console.log(`Request failed — ${reason} (user: ${user}, building: "${building.name}")`);
+            note.className   = "request-error sidebar-note";
+            note.textContent = "This unit is currently unavailable and cannot be requested.";
+            btn.disabled     = true;
+            btn.textContent  = "Unavailable";
+            return;
+        }
+
+        // Duplicate check before writing
+        const duplicate = await hasExistingRequest(currentId);
+        if (duplicate) {
+            const reason = "request already made";
+            console.log(`Request failed — ${reason} (user: ${user}, building: ${currentId})`);
+            note.className   = "request-error sidebar-note";
+            note.textContent = "You have already submitted a request for this building.";
+            btn.textContent  = "Already Requested";
+            return;
+        }
+
+        // Write the request document to Firestore
+        await addDoc(collection(db, "requests"), {
+            username:     user,
+            buildingId:   currentId,
+            buildingName: building.name,
+            requestedAt:  serverTimestamp()
+        });
+
+        console.log(`Request successful — user: ${user}, building: "${building.name}" (id: ${currentId})`);
+        note.className   = "request-success sidebar-note";
+        note.textContent = "✓ Request submitted! The landlord will be in touch.";
+        btn.textContent  = "Request Sent";
+
+    } catch (e) {
+        const reason = e.message || "server error";
+        console.error(`Request failed — ${reason}`, e);
+        note.className   = "request-error sidebar-note";
+        note.textContent = "Something went wrong. Please try again later.";
+        btn.disabled     = false;
+        btn.textContent  = "Send Request";
+    }
+}
+
+// Reset the request button state when a new building is opened.
+// Called inside openBuilding() so the button reflects the current user's request status for each building they view.
+async function initRequestButton() {
+    const btn  = document.getElementById("requestBtn");
+    const note = document.getElementById("requestNote");
+
+    // Reset to default state first
+    btn.disabled     = false;
+    btn.textContent  = "Send Request";
+    note.className   = "sidebar-note";
+    note.textContent = "Interested in this building? Submit a request and the landlord will be in touch.";
+
+    // Check availability
+    const building = await getBuildingById(currentId);
+    if (building && !building.available) {
+        btn.disabled     = true;
+        btn.textContent  = "Unavailable";
+        note.className   = "request-error sidebar-note";
+        note.textContent = "This unit is currently unavailable.";
+        return;
+    }
+
+    // Check if a request already exists
+    const duplicate = await hasExistingRequest(currentId);
+    if (duplicate) {
+        btn.disabled     = true;
+        btn.textContent  = "Already Requested";
+        note.className   = "request-success sidebar-note";
+        note.textContent = "✓ You have already submitted a request for this building.";
+    }
+}
+//#endregion
+
+//#endregion
+
+
+//#region Frontend 
+
+// #region PAGE STATE ────────────────────────────────────────────────────────────
 
 let currentId = null;
+//#endregion
 
+// #region PAGE NAVIGATION ───────────────────────────────────────────────────────
 
-// ── PAGE NAVIGATION ───────────────────────────────────────────────────────
-
+//Scrolls to portion of the page (does so by hiding all elements, and showing only those required for the current page)
 function goTo(pageId) {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     document.getElementById(pageId).classList.add("active");
     window.scrollTo(0, 0);
 }
 
+//Opens the dashboard
 function goBack() {
     goTo("page-dashboard");
 }
+//#endregion
 
+// #region LEGAL TERM TRANSLATOR ─────────────────────────────────────────────────
 
-// ── LEGAL TERM TRANSLATOR ─────────────────────────────────────────────────
-
+//Performs a quick search
 function quickTerm(term) {
     document.getElementById("legalInput").value = term;
     explainTerm();
 }
 
+//Explain term function
 async function explainTerm() {
     const raw  = document.getElementById("legalInput").value.trim().toLowerCase();
     const box  = document.getElementById("legalResult");
@@ -341,7 +485,7 @@ async function explainTerm() {
 
     if (!raw) { shake(document.getElementById("legalInput")); return; }
 
-    // Step 1: check the local quick-chip dictionary first (instant)
+    // Step 1: Checks the local dictionary first
     const localTerms = getLocalLegalTerms();
     const localMatch = Object.keys(localTerms).find(k => raw.includes(k));
     if (localMatch) {
@@ -351,7 +495,7 @@ async function explainTerm() {
         return;
     }
 
-    // Step 2: local miss — fall back to the Firestore extended searchbase
+    // Step 2: If absent in the local dictionary, checks the Firestore extended searchbase
     text.textContent = "Searching extended dictionary…";
     box.classList.remove("hidden");
 
@@ -361,9 +505,9 @@ async function explainTerm() {
 
     box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
+// #endregion
 
-
-// ── TENANT RIGHTS PANEL ───────────────────────────────────────────────────
+// #region TENANT RIGHTS PANEL ───────────────────────────────────────────────────
 
 function toggleRights() {
     const list    = document.getElementById("rightsList");
@@ -372,10 +516,11 @@ function toggleRights() {
     list.classList.toggle("hidden", !isHidden);
     chevron.classList.toggle("open", isHidden);
 }
+//#endregion
 
+// #region RENT GROWTH CALCULATOR ────────────────────────────────────────────────
 
-// ── RENT GROWTH CALCULATOR ────────────────────────────────────────────────
-
+//Predicts the rent baseed on the values inputted into the initalRent, rate of increase, months, and budget info. Throws errors if values are invalid
 function calculateRent() {
     const initial = parseFloat(document.getElementById("initialRent").value);
     const rate    = parseFloat(document.getElementById("increaseRate").value);
@@ -393,6 +538,7 @@ function calculateRent() {
     renderRentResult(data, "budgetAlert", "rentStats", "feasibleRow", "rentBreakdown", "rentResult");
 }
 
+//Peforms rent calculation based on building rent value. Used in rent calculation when a property has been chosen
 async function quickCalc() {
     const building = await getBuildingById(currentId);
     if (!building) return;
@@ -439,9 +585,8 @@ async function quickCalc() {
     document.getElementById("quickResult").classList.remove("hidden");
 }
 
-
-// ── CALCULATION ENGINE ────────────────────────────────────────────────────
-
+//Calculates a projection of the total rent amount based on the inital value, rate, time, and budget info, and returns an object containing the total final amount, final total rent, 
+// increase amount, and information in relation to whether it is within budget
 function localProjectRent(initial, rate, months, budget) {
     let total = 0, rent = initial, rows = [];
 
@@ -476,6 +621,7 @@ function localProjectRent(initial, rate, months, budget) {
     return result;
 }
 
+//Calculates the maximum feasible duration of renting based on the initial rent amount, rent appreciation rate, and current budget. Returnds this number in months.
 function localFeasibleDuration(initial, rate, budget) {
     const MAX_MONTHS = 600;
     let total = 0, rent = initial, months = 0;
@@ -487,10 +633,11 @@ function localFeasibleDuration(initial, rate, budget) {
     }
     return Math.max(0, months - 1);
 }
+//#endregion
 
+// #region RENDER FUNCTIONS ────────────────────────────────────────────────────────
 
-// ── RENDER HELPERS ────────────────────────────────────────────────────────
-
+//Renders the rent results and edits the html accordingly.
 function renderRentResult(data, alertId, statsId, feasibleId, breakdownId, boxId) {
     const alertEl    = document.getElementById(alertId);
     const feasibleEl = document.getElementById(feasibleId);
@@ -528,6 +675,7 @@ function renderRentResult(data, alertId, statsId, feasibleId, breakdownId, boxId
     box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+//Makes a table containing the rent data (Period, monthly rent, total rent)
 function buildTable(rows) {
     let tbl = `<table class="breakdown-table">
         <thead><tr><th>Period</th><th>Monthly Rent</th><th>Cumulative Total</th></tr></thead>
@@ -538,150 +686,12 @@ function buildTable(rows) {
     return tbl + "</tbody></table>";
 }
 
+//Formats a number to 2 decimal places. ******************************************************** check
 function fmt(n) {
     return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-
-// ── BUILDING SEARCH ───────────────────────────────────────────────────────
-async function listAllBuildings() {
-    const grid = document.getElementById("buildingsGrid");
-    grid.innerHTML = `<p class="placeholder-text">Loading…</p>`;
-    const all = await getBuildings();
-    if (!all.length) {
-        grid.innerHTML = `<p class="placeholder-text">No buildings found.</p>`;
-        return;
-    }
-    const reviewSets = await Promise.all(
-        all.map(b => allReviewsFor(b.id, b.reviews))
-    );
-    grid.innerHTML = all.map((b, i) => {
-        const avg   = avgRating(reviewSets[i]);
-        const img   = b.image ? `<img src="${esc(b.image)}" alt="">` : b.emoji;
-        const avail = b.available
-            ? `<span class="badge badge-yes">Available</span>`
-            : `<span class="badge badge-no">Unavailable</span>`;
-        return `
-        <div class="building-card" onclick="openBuilding(${b.id})">
-            <div class="building-card-img">${img}</div>
-            <div class="building-card-body">
-                <p class="building-card-name">${esc(b.name)}</p>
-                <p class="building-card-address">📍 ${esc(b.address)}</p>
-                <div class="building-card-footer">
-                    <span>
-                        ${starHTML(avg)}
-                        <span class="review-count-sm"> ${avg > 0 ? avg.toFixed(1) : "—"} (${reviewSets[i].length})</span>
-                    </span>
-                    ${avail}
-                </div>
-            </div>
-        </div>`;
-    }).join("");
-}
-
-async function searchBuilding() {
-    const q    = document.getElementById("buildingInput").value.trim();
-    const grid = document.getElementById("buildingsGrid");
-
-    if (!q) { shake(document.getElementById("buildingInput")); return; }
-
-    grid.innerHTML = `<p class="placeholder-text">Searching…</p>`;
-    const results = await searchBuildingsFirestore(q);
-
-    if (!results.length) {
-        grid.innerHTML = `<p class="placeholder-text">😕 No results for "<strong>${esc(q)}</strong>". Try "Sunrise", "Tower", "Studio", or "Heritage".</p>`;
-        return;
-    }
-
-    // allReviewsFor is async so we can't call it inside .map().
-    // Instead, fetch all review sets in parallel first with Promise.all(),
-    // then map synchronously over the resolved results.
-    const reviewSets = await Promise.all(
-        results.map(b => allReviewsFor(b.id, b.reviews))
-    );
-
-    grid.innerHTML = results.map((b, i) => {
-        const all   = reviewSets[i];
-        const avg   = avgRating(all);
-        const img   = b.image ? `<img src="${esc(b.image)}" alt="">` : b.emoji;
-        const avail = b.available
-            ? `<span class="badge badge-yes">Available</span>`
-            : `<span class="badge badge-no">Unavailable</span>`;
-        return `
-        <div class="building-card" onclick="openBuilding(${b.id})">
-            <div class="building-card-img">${img}</div>
-            <div class="building-card-body">
-                <p class="building-card-name">${esc(b.name)}</p>
-                <p class="building-card-address">📍 ${esc(b.address)}</p>
-                <div class="building-card-footer">
-                    <span>
-                        ${starHTML(avg)}
-                        <span class="review-count-sm"> ${avg > 0 ? avg.toFixed(1) : "—"} (${all.length})</span>
-                    </span>
-                    ${avail}
-                </div>
-            </div>
-        </div>`;
-    }).join("");
-}
-
-
-// ── BUILDING DETAIL PAGE ──────────────────────────────────────────────────
-
-async function openBuilding(id) {
-    const b = await getBuildingById(id);
-    if (!b) return;
-    currentId = id;
-
-    const all = await allReviewsFor(id, b.reviews);
-    const avg = avgRating(all);
-
-    document.getElementById("bHeroImg").innerHTML = b.image
-        ? `<img src="${esc(b.image)}" alt="${esc(b.name)}">`
-        : b.emoji;
-
-    const availBadge = b.available
-        ? `<span class="badge badge-yes">✓ Available</span>`
-        : `<span class="badge badge-no">✗ Unavailable</span>`;
-    document.getElementById("bBadges").innerHTML =
-        `<span class="badge badge-type">${esc(b.type)}</span>${availBadge}`;
-
-    document.getElementById("bName").textContent    = b.name;
-    document.getElementById("bAddress").textContent = "📍 " + b.address;
-    document.getElementById("bDesc").textContent    = b.description;
-
-    document.getElementById("bRatingRow").innerHTML = avg > 0
-        ? `<span class="b-rating-num">${avg.toFixed(1)}</span>
-           <span class="b-rating-stars" style="color:#f59e0b">${starHTML(avg)}</span>
-           <span class="b-rating-count">${all.length} review${all.length !== 1 ? "s" : ""}</span>`
-        : `<span class="b-rating-count">No reviews yet</span>`;
-
-    document.getElementById("bStatsStrip").innerHTML = `
-        <div class="stat-chip"><span class="chip-val">$${b.monthlyRent.toLocaleString()}<small style="font-size:0.65rem;font-weight:400">/mo</small></span><span class="chip-key">Monthly Rent</span></div>
-        <div class="stat-chip"><span class="chip-val">${b.bedrooms} bed · ${b.bathrooms} bath</span><span class="chip-key">Rooms</span></div>
-        <div class="stat-chip"><span class="chip-val">${b.sqft.toLocaleString()} sq ft</span><span class="chip-key">Size</span></div>
-        <div class="stat-chip"><span class="chip-val">${esc(b.type)}</span><span class="chip-key">Property Type</span></div>
-    `;
-
-    document.getElementById("bAmenities").innerHTML =
-        b.amenities.map(a => `<span class="amenity-tag">${esc(a)}</span>`).join("");
-
-    renderReviews(all);
-
-    document.getElementById("reviewText").value       = "";
-    document.getElementById("ratingValue").value      = "0";
-    document.getElementById("submitNote").textContent = "";
-    document.querySelectorAll("#starRating .star").forEach(s => s.classList.remove("active"));
-    document.getElementById("quickRate").value   = "";
-    document.getElementById("quickMonths").value = "";
-    document.getElementById("quickBudget").value = "";
-    document.getElementById("quickResult").classList.add("hidden");
-
-    initStars();
-    initRequestButton();  // check existing request status for this building
-    goTo("page-building");
-}
-
+//Loads the building reviews
 function renderReviews(all) {
     document.getElementById("bReviewPill").textContent = all.length;
     document.getElementById("bReviewsList").innerHTML = all.length
@@ -696,198 +706,7 @@ function renderReviews(all) {
         : `<p class="no-reviews">No reviews yet — be the first to share your experience!</p>`;
 }
 
-async function submitReview() {
-    const rating = parseInt(document.getElementById("ratingValue").value);
-    const text   = document.getElementById("reviewText").value.trim();
-    const note   = document.getElementById("submitNote");
-
-    if (!rating) { note.style.color = "#dc2626"; note.textContent = "Please select a star rating first."; return; }
-    if (!text)   { note.style.color = "#dc2626"; note.textContent = "Please write a short review."; return; }
-
-    const user    = getCurrentUser();
-    const now     = new Date();
-    const dateStr = now.toLocaleString("en-US", { month: "short", year: "numeric" });
-
-    // saveUserReview and allReviewsFor are both async now — Firestore calls.
-    await saveUserReview(user, currentId, { stars: rating, date: dateStr, text });
-
-    const b   = await getBuildingById(currentId);
-    const all = await allReviewsFor(currentId, b ? b.reviews : []);
-    const avg = avgRating(all);
-
-    document.getElementById("bRatingRow").innerHTML = `
-        <span class="b-rating-num">${avg.toFixed(1)}</span>
-        <span class="b-rating-stars" style="color:#f59e0b">${starHTML(avg)}</span>
-        <span class="b-rating-count">${all.length} review${all.length !== 1 ? "s" : ""}</span>`;
-
-    renderReviews(all);
-
-    document.getElementById("reviewText").value  = "";
-    document.getElementById("ratingValue").value = "0";
-    document.querySelectorAll("#starRating .star").forEach(s => s.classList.remove("active"));
-    note.style.color   = "#0f766e";
-    note.textContent   = "✓ Review submitted — thank you!";
-}
-
-
-// ── RENT REQUESTS (Firestore) ─────────────────────────────────────────────
-// Firestore structure:
-//   /requests/{auto-id}
-//       username    : string   -- the user making the request
-//       buildingId  : number   -- the building's numeric id
-//       buildingName: string   -- denormalised for easy reading in console
-//       requestedAt : timestamp
-//
-// Duplicate detection: before writing, we query for any existing doc
-// with the same username + buildingId. If one exists we reject it
-// client-side and surface a clear message rather than writing a duplicate.
-
-// Check whether the current user has already requested this building.
-async function hasExistingRequest(buildingId) {
-    const user = getCurrentUser();
-    if (!user) return false;
-    try {
-        const q    = query(
-            collection(db, "requests"),
-            where("username",   "==", user),
-            where("buildingId", "==", buildingId)
-        );
-        const snap = await getDocs(q);
-        return !snap.empty;
-    } catch (e) {
-        // If the check itself fails, return false and let the write attempt surface the real error.
-        console.error("Request duplicate check failed:", e);
-        return false;
-    }
-}
-
-// Submit a rent request for the currently open building.
-async function submitRentRequest() {
-    const user = getCurrentUser();
-    const btn  = document.getElementById("requestBtn");
-    const note = document.getElementById("requestNote");
-
-    if (!user) {
-        note.className = "request-error sidebar-note";
-        note.textContent = "You must be logged in to submit a request.";
-        return;
-    }
-
-    btn.disabled    = true;
-    btn.textContent = "Submitting…";
-
-    try {
-        const building = await getBuildingById(currentId);
-        if (!building) throw new Error("Building not found.");
-
-        // Availability check — reject before writing if unit is unavailable
-        if (!building.available) {
-            const reason = "unit unavailable";
-            console.log(`Request failed — ${reason} (user: ${user}, building: "${building.name}")`);
-            note.className   = "request-error sidebar-note";
-            note.textContent = "This unit is currently unavailable and cannot be requested.";
-            btn.disabled     = true;
-            btn.textContent  = "Unavailable";
-            return;
-        }
-
-        // Duplicate check before writing
-        const duplicate = await hasExistingRequest(currentId);
-        if (duplicate) {
-            const reason = "request already made";
-            console.log(`Request failed — ${reason} (user: ${user}, building: ${currentId})`);
-            note.className   = "request-error sidebar-note";
-            note.textContent = "You have already submitted a request for this building.";
-            btn.textContent  = "Already Requested";
-            return;
-        }
-
-        // Write the request document to Firestore
-        await addDoc(collection(db, "requests"), {
-            username:     user,
-            buildingId:   currentId,
-            buildingName: building.name,
-            requestedAt:  serverTimestamp()
-        });
-
-        console.log(`Request successful — user: ${user}, building: "${building.name}" (id: ${currentId})`);
-        note.className   = "request-success sidebar-note";
-        note.textContent = "✓ Request submitted! The landlord will be in touch.";
-        btn.textContent  = "Request Sent";
-
-    } catch (e) {
-        const reason = e.message || "server error";
-        console.error(`Request failed — ${reason}`, e);
-        note.className   = "request-error sidebar-note";
-        note.textContent = "Something went wrong. Please try again later.";
-        btn.disabled     = false;
-        btn.textContent  = "Send Request";
-    }
-}
-
-// Reset the request button state when a new building is opened.
-// Called inside openBuilding() so the button reflects the current
-// user's request status for each building they view.
-async function initRequestButton() {
-    const btn  = document.getElementById("requestBtn");
-    const note = document.getElementById("requestNote");
-
-    // Reset to default state first
-    btn.disabled     = false;
-    btn.textContent  = "Send Request";
-    note.className   = "sidebar-note";
-    note.textContent = "Interested in this building? Submit a request and the landlord will be in touch.";
-
-    // Check availability first
-    const building = await getBuildingById(currentId);
-    if (building && !building.available) {
-        btn.disabled     = true;
-        btn.textContent  = "Unavailable";
-        note.className   = "request-error sidebar-note";
-        note.textContent = "This unit is currently unavailable.";
-        return;
-    }
-
-    // Then check if a request already exists
-    const duplicate = await hasExistingRequest(currentId);
-    if (duplicate) {
-        btn.disabled     = true;
-        btn.textContent  = "Already Requested";
-        note.className   = "request-success sidebar-note";
-        note.textContent = "✓ You have already submitted a request for this building.";
-    }
-}
-
-
-// ── DEADLINE TRACKER ──────────────────────────────────────────────────────
-
-const DEADLINE_ICONS = {
-    renewal: "🔄", payment: "💳",
-    inspection: "🔍", notice: "📨", other: "📌"
-};
-
-async function addDeadline() {
-    const label = document.getElementById("deadlineLabel").value.trim();
-    const date  = document.getElementById("deadlineDate").value;
-    const type  = document.getElementById("deadlineType").value;
-
-    if (!label) { shake(document.getElementById("deadlineLabel")); return; }
-    if (!date)  { shake(document.getElementById("deadlineDate"));  return; }
-
-    // Clear inputs immediately so the form feels responsive
-    // while the async Firestore write happens in the background.
-    document.getElementById("deadlineLabel").value = "";
-    document.getElementById("deadlineDate").value  = "";
-
-    await addDeadlineToFirestore(label, date, type);
-    // renderDeadlines() is called inside addDeadlineToFirestore()
-    // after the write succeeds, so the list always reflects Firestore.
-}
-
-async function removeDeadline(firestoreId) {
-    await removeDeadlineFromFirestore(firestoreId);
-}
-
+//renders the page after a deadline is altered
 async function renderDeadlines() {
     const list      = document.getElementById("trackerList");
     // Show a loading state while we wait for Firestore
@@ -928,9 +747,218 @@ async function renderDeadlines() {
     }).join("");
 }
 
+//#endregion
 
-// ── STAR RATING WIDGET ────────────────────────────────────────────────────
+// #region BUILDING SEARCH ───────────────────────────────────────────────────────
 
+//Lists all buildings contained in firestore.
+async function listAllBuildings() {
+    const grid = document.getElementById("buildingsGrid");
+    grid.innerHTML = `<p class="placeholder-text">Loading…</p>`;
+    const all = await getBuildings();
+    if (!all.length) {
+        grid.innerHTML = `<p class="placeholder-text">No buildings found.</p>`;
+        return;
+    }
+    const reviewSets = await Promise.all(
+        all.map(b => allReviewsFor(b.id, b.reviews))
+    );
+    grid.innerHTML = all.map((b, i) => {
+        const avg   = avgRating(reviewSets[i]);
+        const img   = b.image ? `<img src="${esc(b.image)}" alt="">` : b.emoji;
+        const avail = b.available
+            ? `<span class="badge badge-yes">Available</span>`
+            : `<span class="badge badge-no">Unavailable</span>`;
+        return `
+        <div class="building-card" onclick="openBuilding(${b.id})">
+            <div class="building-card-img">${img}</div>
+            <div class="building-card-body">
+                <p class="building-card-name">${esc(b.name)}</p>
+                <p class="building-card-address">📍 ${esc(b.address)}</p>
+                <div class="building-card-footer">
+                    <span>
+                        ${starHTML(avg)}
+                        <span class="review-count-sm"> ${avg > 0 ? avg.toFixed(1) : "—"} (${reviewSets[i].length})</span>
+                    </span>
+                    ${avail}
+                </div>
+            </div>
+        </div>`;
+    }).join("");
+}
+
+//Searches for, and returns the buildings containing a string specified in the search field; returns no results if not found.
+async function searchBuilding() {
+    const q = document.getElementById("buildingInput").value.trim();
+    const grid = document.getElementById("buildingsGrid");
+
+    if (!q) { shake(document.getElementById("buildingInput")); return; }
+
+    grid.innerHTML = `<p class="placeholder-text">Searching…</p>`;
+    const results = await searchBuildingsFirestore(q);
+
+    if (!results.length) {
+        grid.innerHTML = `<p class="placeholder-text">😕 No results for "<strong>${esc(q)}</strong>". Try "Sunrise", "Tower", "Studio", or "Heritage".</p>`;
+        return;
+    }
+
+    // allReviewsFor is asynchronous so we can't call it inside .map().
+    // Instead, we fetch all review sets in parallel first with Promise.all() then map synchronously over the resolved results.
+    const reviewSets = await Promise.all(
+        results.map(b => allReviewsFor(b.id, b.reviews))
+    );
+
+    grid.innerHTML = results.map((b, i) => {
+        const all   = reviewSets[i];
+        const avg   = avgRating(all);
+        const img   = b.image ? `<img src="${esc(b.image)}" alt="">` : b.emoji;
+        const avail = b.available
+            ? `<span class="badge badge-yes">Available</span>`
+            : `<span class="badge badge-no">Unavailable</span>`;
+        return `
+        <div class="building-card" onclick="openBuilding(${b.id})">
+            <div class="building-card-img">${img}</div>
+            <div class="building-card-body">
+                <p class="building-card-name">${esc(b.name)}</p>
+                <p class="building-card-address">📍 ${esc(b.address)}</p>
+                <div class="building-card-footer">
+                    <span>
+                        ${starHTML(avg)}
+                        <span class="review-count-sm"> ${avg > 0 ? avg.toFixed(1) : "—"} (${all.length})</span>
+                    </span>
+                    ${avail}
+                </div>
+            </div>
+        </div>`;
+    }).join("");
+}
+//#endregion
+
+// #region BUILDING DETAIL PAGE ──────────────────────────────────────────────────
+
+//Loads the page containing the selected building information
+async function openBuilding(id) {
+    const b = await getBuildingById(id);
+    if (!b) return;
+    currentId = id;
+
+    const all = await allReviewsFor(id, b.reviews);
+    const avg = avgRating(all);
+
+    document.getElementById("bHeroImg").innerHTML = b.image
+        ? `<img src="${esc(b.image)}" alt="${esc(b.name)}">`
+        : b.emoji;
+
+    const availBadge = b.available
+        ? `<span class="badge badge-yes">✓ Available</span>`
+        : `<span class="badge badge-no">✗ Unavailable</span>`;
+    document.getElementById("bBadges").innerHTML =
+        `<span class="badge badge-type">${esc(b.type)}</span>${availBadge}`;
+
+    document.getElementById("bName").textContent    = b.name;
+    document.getElementById("bAddress").textContent = "📍 " + b.address;
+    document.getElementById("bDesc").textContent    = b.description;
+
+    document.getElementById("bRatingRow").innerHTML = avg > 0
+        ? `<span class="b-rating-num">${avg.toFixed(1)}</span>
+           <span class="b-rating-stars" style="color:#f59e0b">${starHTML(avg)}</span>
+           <span class="b-rating-count">${all.length} review${all.length !== 1 ? "s" : ""}</span>`
+        : `<span class="b-rating-count">No reviews yet</span>`;
+
+    document.getElementById("bStatsStrip").innerHTML = `
+        <div class="stat-chip"><span class="chip-val">$${b.monthlyRent.toLocaleString()}<small style="font-size:0.65rem;font-weight:400">/mo</small></span><span class="chip-key">Monthly Rent</span></div>
+        <div class="stat-chip"><span class="chip-val">${b.bedrooms} bed · ${b.bathrooms} bath</span><span class="chip-key">Rooms</span></div>
+        <div class="stat-chip"><span class="chip-val">${b.sqft.toLocaleString()} sq ft</span><span class="chip-key">Size</span></div>
+        <div class="stat-chip"><span class="chip-val">${esc(b.type)}</span><span class="chip-key">Property Type</span></div>
+    `;
+
+    document.getElementById("bAmenities").innerHTML =
+        b.amenities.map(a => `<span class="amenity-tag">${esc(a)}</span>`).join("");
+
+    renderReviews(all);
+
+    document.getElementById("reviewText").value = "";
+    document.getElementById("ratingValue").value = "0";
+    document.getElementById("submitNote").textContent = "";
+    document.querySelectorAll("#starRating .star").forEach(s => s.classList.remove("active"));
+    document.getElementById("quickRate").value   = "";
+    document.getElementById("quickMonths").value = "";
+    document.getElementById("quickBudget").value = "";
+    document.getElementById("quickResult").classList.add("hidden");
+
+    initStars();
+    initRequestButton();  // check existing request status for this building
+    goTo("page-building");
+}
+
+//Submits reviews, and formats response based on success
+async function submitReview() {
+    const rating = parseInt(document.getElementById("ratingValue").value);
+    const text   = document.getElementById("reviewText").value.trim();
+    const note   = document.getElementById("submitNote");
+
+    if (!rating) { note.style.color = "#dc2626"; note.textContent = "Please select a star rating first."; return; }
+    if (!text)   { note.style.color = "#dc2626"; note.textContent = "Please write a short review."; return; }
+
+    const user = getCurrentUser();
+    const now = new Date();
+    const dateStr = now.toLocaleString("en-US", { month: "short", year: "numeric" });
+
+    // saveUserReview and allReviewsFor are both async now — Firestore calls.
+    await saveUserReview(user, currentId, { stars: rating, date: dateStr, text });
+
+    const b = await getBuildingById(currentId);
+    const all = await allReviewsFor(currentId, b ? b.reviews : []);
+    const avg = avgRating(all);
+
+    document.getElementById("bRatingRow").innerHTML = `
+        <span class="b-rating-num">${avg.toFixed(1)}</span>
+        <span class="b-rating-stars" style="color:#f59e0b">${starHTML(avg)}</span>
+        <span class="b-rating-count">${all.length} review${all.length !== 1 ? "s" : ""}</span>`;
+
+    renderReviews(all);
+
+    document.getElementById("reviewText").value  = "";
+    document.getElementById("ratingValue").value = "0";
+    document.querySelectorAll("#starRating .star").forEach(s => s.classList.remove("active"));
+    note.style.color   = "#0f766e";
+    note.textContent   = "✓ Review submitted — thank you!";
+}
+//#endregion
+
+// #region DEADLINE TRACKER ──────────────────────────────────────────────────────
+
+const DEADLINE_ICONS = {
+    renewal: "🔄", payment: "💳",
+    inspection: "🔍", notice: "📨", other: "📌"
+};
+
+// Adds a deadline
+async function addDeadline() {
+    const label = document.getElementById("deadlineLabel").value.trim();
+    const date  = document.getElementById("deadlineDate").value;
+    const type  = document.getElementById("deadlineType").value;
+
+    if (!label) { shake(document.getElementById("deadlineLabel")); return; }
+    if (!date)  { shake(document.getElementById("deadlineDate"));  return; }
+
+    // Clear inputs immediately so the form feels responsive while the async Firestore write happens in the background.
+    document.getElementById("deadlineLabel").value = "";
+    document.getElementById("deadlineDate").value  = "";
+
+    await addDeadlineToFirestore(label, date, type);
+    // renderDeadlines() is called inside addDeadlineToFirestore() after the write succeeds, so the list always reflects Firestore.
+}
+
+//Removes a deadline
+async function removeDeadline(firestoreId) {
+    await removeDeadlineFromFirestore(firestoreId);
+}
+//#endregion
+
+// #region STAR RATING WIDGET ────────────────────────────────────────────────────
+
+//controls the stars during rating
 function initStars() {
     const stars = document.querySelectorAll("#starRating .star");
     const input = document.getElementById("ratingValue");
@@ -949,20 +977,23 @@ function initStars() {
         });
     });
 }
+//#endregion
 
+// #region SHARED HELPER FUNCTIONS ────────────────────────────────────────────────────────
 
-// ── SHARED HELPERS ────────────────────────────────────────────────────────
-
+//Capitalizes a string
 function capitalised(str) {
     if (!str) return "";
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Calculates the average rating
 function avgRating(reviews) {
     if (!reviews.length) return 0;
     return reviews.reduce((s, r) => s + r.stars, 0) / reviews.length;
 }
 
+//Displays stars according to rating
 function starHTML(rating) {
     let h = "";
     for (let i = 1; i <= 5; i++)
@@ -970,24 +1001,26 @@ function starHTML(rating) {
     return h;
 }
 
+//Escapes characters, preventing user-text from being read as html
 function esc(s) {
     return String(s)
         .replace(/&/g, "&amp;").replace(/</g, "&lt;")
         .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+//Shake animation, used to serve as interactive feedback
 function shake(el) {
     el.style.animation = "none";
     el.offsetHeight;
     el.style.animation = "shake 0.32s ease";
     el.addEventListener("animationend", () => el.style.animation = "", { once: true });
 }
+//#endregion
 
+// #region FALLBACKS ──────────────────────────────────────────────────────
+// Used only if the JSON files can't be fetched (like if opened as a local file without a web server). Keeps the app functional in all environments.
 
-// ── INLINE FALLBACKS ──────────────────────────────────────────────────────
-// Used only if the JSON files can't be fetched (e.g. opened as a local file
-// without a web server). Keeps the app functional in all environments.
-
+//Initial 4 buildings
 const BUILDINGS_FALLBACK = [
     { id: 1, name: "Sunrise Apartments", address: "142 Oak Street, Downtown", type: "Apartment", image: "", emoji: "🌅", monthlyRent: 1200, bedrooms: 2, bathrooms: 1, sqft: 850, available: true, amenities: ["Parking", "Gym", "Laundry", "Air Conditioning", "Storage Unit"], description: "A well-maintained complex in the heart of downtown. Close to public transport and major shopping. Management is responsive and the community is quiet.", reviews: [{ stars: 5, date: "Mar 2025", text: "Great location, responsive landlord. Heating works perfectly all winter." }, { stars: 4, date: "Jan 2025", text: "Nice building overall. A bit pricey but worth it for the amenities." }, { stars: 3, date: "Nov 2024", text: "Maintenance can be slow on weekends, but they do fix things eventually." }] },
     { id: 2, name: "Greenview Tower", address: "78 Elm Avenue, Midtown", type: "Condo", image: "", emoji: "🏢", monthlyRent: 1800, bedrooms: 3, bathrooms: 2, sqft: 1200, available: true, amenities: ["24/7 Concierge", "Rooftop Terrace", "Pool", "Gym", "Underground Parking"], description: "Modern high-rise with panoramic city views and upscale finishes. Ideal for professionals.", reviews: [{ stars: 2, date: "Feb 2025", text: "Landlord ignored multiple requests about the broken elevator for weeks." }, { stars: 4, date: "Dec 2024", text: "Great views and modern interiors. Street noise can be an issue at night." }, { stars: 4, date: "Oct 2024", text: "Generally a good place. Management improved a lot in the past year." }] },
@@ -995,6 +1028,7 @@ const BUILDINGS_FALLBACK = [
     { id: 4, name: "Heritage Flats", address: "33 Maple Lane, Old Town", type: "Apartment", image: "", emoji: "🏛️", monthlyRent: 1050, bedrooms: 2, bathrooms: 1, sqft: 720, available: true, amenities: ["Historic Building", "Shared Garden", "Hardwood Floors", "High Ceilings"], description: "Charming apartments inside a restored 1920s heritage building. High ceilings, original hardwood floors, and a shared garden.", reviews: [{ stars: 4, date: "Mar 2025", text: "Beautiful building. The character is unmatched. Old heating but it works fine." }, { stars: 3, date: "Jan 2025", text: "Lovely place but the pipes are noisy at night. Management was responsive." }] }
 ];
 
+//Initial 10 legal terms
 const LEGAL_TERMS_FALLBACK = {
     "indemnification": "This clause means you agree to protect the landlord from financial loss caused by your actions. For example, if a guest is injured in your apartment and sues, you — not the landlord — would be responsible for covering those costs.",
     "subrogation": "If your insurance company pays out for a loss (such as a flood), this clause allows them to sue the responsible party on your behalf to recover that money.",
@@ -1007,26 +1041,26 @@ const LEGAL_TERMS_FALLBACK = {
     "easement": "A legal right that allows a third party to use a specific portion of the rented property for a defined purpose.",
     "escrow": "Money held by a neutral third party until a specific condition is met. Security deposits are sometimes held in escrow."
 };
+//#endregion
 
+//#endregion
 
-// ── INIT ──────────────────────────────────────────────────────────────────
+// #region INIT ──────────────────────────────────────────────────────────────────
 
+// Seeds local legal terms and migrate buildings in parallel
 async function init() {
-    // Seed local legal terms and migrate buildings in parallel —
-    // both are one-time operations guarded by localStorage flags.
     await Promise.all([seedIfNeeded(), migrateBuildings()]);
     initUser();
     await renderDeadlines();
 }
-
+//initializes, then cosole logs that firestore is active.
 init().then(() => {
     console.log("Rental Contract Helper — Firestore active ✓");
 });
 
 // ── Expose functions to window for HTML onclick handlers ──────────────────
-// ES modules are scoped — functions defined here are not on window by
-// default, so onclick="fn()" in HTML can't find them. Assigning them to
-// window explicitly restores that connection.
+// ES modules are scoped, meaning functions defined here are not on window by default, so onclick="fn()" in HTML can't find them. 
+// Assigning them to window explicitly restores that connection (making them global again).
 
 window.loginUser      = loginUser;
 window.switchUser     = switchUser;
@@ -1043,3 +1077,4 @@ window.submitReview   = submitReview;
 window.addDeadline    = addDeadline;
 window.removeDeadline    = removeDeadline;
 window.submitRentRequest = submitRentRequest;
+//#endregion
