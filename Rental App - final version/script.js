@@ -1,20 +1,16 @@
 // ══════════════════════════════════════════════
 //  script.js — Rental Contract Helper
 //
-//  Buildings: migrated from buildings.json into
-//  Firestore on first load, then read live.
+//  Buildings: Migrated from buildings.json into firestore on first load, then read live.
 //
-//  Legal terms: quick chips from local JSON;
-//  extended search falls back to Firestore.
+//  Legal terms: Quick search done from local JSON; extended search reads from Firestore.
 //
-//  Deadlines: read/written to Firestore.
-//  Reviews: stored in localStorage per user.
+//  Deadlines: Read from and Written to firestore.
+//
+//  Reviews: Stored in firestore.
 // ══════════════════════════════════════════════
 
 // ── Firebase setup ─────────────────────────────────────────────────────────────────
-// Firebase is loaded as ES modules via their CDN (no npm needed).
-// initializeApp() registers your project config with the SDK.
-// getFirestore() returns the database instance used everywhere below.
 
 import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc,
@@ -23,7 +19,7 @@ import { getFirestore, collection, doc,
          serverTimestamp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey:            "AIzaSyAvJpHLk0ZQDSBxfhhTcmxyrvhDlhh34F0",
+    apiKey:            "AIzaSyAvJpHLk0ZQDSBxfhhTcmxyrvhDlhh34F0", // Will not be added in actual version; API keys should be kept secret
     authDomain:        "rental-helper-app.firebaseapp.com",
     projectId:         "rental-helper-app",
     storageBucket:     "rental-helper-app.firebasestorage.app",
@@ -33,19 +29,23 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
+
+
 // ── Storage key helpers ───────────────────────────────────────────────────
-// All keys are namespaced so multiple "users" can share one browser.
+// keys are named to prevent conflict with other apps.
 
 const KEYS = {
     user:      ()     => "rch:currentUser",
-    legalTerms:()     => "rch:legalTerms",      // local quick-chips only
+    legalTerms:()     => "rch:legalTerms",      // local quick-searches only
     seeded:    ()     => "rch:seeded",           // legal terms seeded flag
     migrated:  ()     => "rch:migrated",         // buildings migrated to Firestore flag
 };
 
+//Stores Key in localstorage
 function store(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
 }
+
 
 function load(key, fallback = null) {
     const raw = localStorage.getItem(key);
@@ -544,6 +544,40 @@ function fmt(n) {
 
 
 // ── BUILDING SEARCH ───────────────────────────────────────────────────────
+async function listAllBuildings() {
+    const grid = document.getElementById("buildingsGrid");
+    grid.innerHTML = `<p class="placeholder-text">Loading…</p>`;
+    const all = await getBuildings();
+    if (!all.length) {
+        grid.innerHTML = `<p class="placeholder-text">No buildings found.</p>`;
+        return;
+    }
+    const reviewSets = await Promise.all(
+        all.map(b => allReviewsFor(b.id, b.reviews))
+    );
+    grid.innerHTML = all.map((b, i) => {
+        const avg   = avgRating(reviewSets[i]);
+        const img   = b.image ? `<img src="${esc(b.image)}" alt="">` : b.emoji;
+        const avail = b.available
+            ? `<span class="badge badge-yes">Available</span>`
+            : `<span class="badge badge-no">Unavailable</span>`;
+        return `
+        <div class="building-card" onclick="openBuilding(${b.id})">
+            <div class="building-card-img">${img}</div>
+            <div class="building-card-body">
+                <p class="building-card-name">${esc(b.name)}</p>
+                <p class="building-card-address">📍 ${esc(b.address)}</p>
+                <div class="building-card-footer">
+                    <span>
+                        ${starHTML(avg)}
+                        <span class="review-count-sm"> ${avg > 0 ? avg.toFixed(1) : "—"} (${reviewSets[i].length})</span>
+                    </span>
+                    ${avail}
+                </div>
+            </div>
+        </div>`;
+    }).join("");
+}
 
 async function searchBuilding() {
     const q    = document.getElementById("buildingInput").value.trim();
@@ -559,8 +593,15 @@ async function searchBuilding() {
         return;
     }
 
-    grid.innerHTML = results.map(b => {
-        const all   = allReviewsFor(b.id, b.reviews);
+    // allReviewsFor is async so we can't call it inside .map().
+    // Instead, fetch all review sets in parallel first with Promise.all(),
+    // then map synchronously over the resolved results.
+    const reviewSets = await Promise.all(
+        results.map(b => allReviewsFor(b.id, b.reviews))
+    );
+
+    grid.innerHTML = results.map((b, i) => {
+        const all   = reviewSets[i];
         const avg   = avgRating(all);
         const img   = b.image ? `<img src="${esc(b.image)}" alt="">` : b.emoji;
         const avail = b.available
@@ -994,7 +1035,8 @@ window.quickTerm      = quickTerm;
 window.explainTerm    = explainTerm;
 window.toggleRights   = toggleRights;
 window.calculateRent  = calculateRent;
-window.searchBuilding = searchBuilding;
+window.searchBuilding  = searchBuilding;
+window.listAllBuildings = listAllBuildings;
 window.openBuilding   = openBuilding;
 window.quickCalc      = quickCalc;
 window.submitReview   = submitReview;

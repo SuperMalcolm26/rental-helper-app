@@ -197,6 +197,7 @@
                            placeholder="Search by name, address, or type (e.g. studio, condo)…"
                            onkeydown="if(event.key==='Enter') searchBuilding()">
                     <button class="btn btn-building" onclick="searchBuilding()">Search</button>
+                    <button class="btn btn-building-all" onclick="listAllBuildings()">List All</button>
                 </div>
                 <div class="buildings-grid" id="buildingsGrid">
                     <p class="placeholder-text">🔍 Search a building above to see results</p>
@@ -339,7 +340,7 @@
                         <label>Your Budget ($) <span class="label-optional">optional</span></label>
                         <input type="number" id="quickBudget" placeholder="e.g. 15000" min="0">
                     </div>
-                    
+
                     <button class="btn btn-rent btn-full" onclick="quickCalc()">Estimate</button>
                     <div class="result-box hidden" id="quickResult">
                         <span class="result-label">💰 Estimate</span>
